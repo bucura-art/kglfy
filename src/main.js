@@ -5,6 +5,8 @@ import { preload, texture, dress, dressModel, setEnvironment, reflect } from './
 import { useDemoBackendIfNeeded } from './demo-backend.js';
 
 await useDemoBackendIfNeeded(); // on a static host there is no server: run the seat database in the browser instead
+// wait briefly for the typeface, so numbers painted onto signs and labels use it too
+try { await Promise.race([document.fonts.load('700 72px Geist'), new Promise((r) => setTimeout(r, 1500))]); } catch { /* fall back to the system font */ }
 import { buildSeats, seatId } from '../shared/layout.js';
 import qrcode from 'qrcode-generator';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -28,7 +30,10 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, coarse ? 1.5 : 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 const scene = new THREE.Scene();
-await preload(); // all surface textures and the sky
+// loading screen: textures are the first 70% of the wait, the models the rest
+const progress = (f) => { if (window.__loading) window.__loading(f); };
+let loadStep = 0; const tick = () => progress(0.7 + ++loadStep * 0.04); // one tick per model file
+await preload((f) => progress(f * 0.7)); // all surface textures and the sky
 { // a real sky with clouds: it is the backdrop, and it is also what glass and metal reflect
   const sky = texture('sky.jpg', { srgb: true });
   if (sky) {
@@ -47,6 +52,7 @@ try {
   worldAssets.trees = ['Tree1', 'Tree2', 'Tree3'].map(geo).filter(Boolean); worldAssets.bush = geo('Bush');
   if (!worldAssets.trees.length) delete worldAssets.trees;
 } catch (err) { console.warn('Blender cars and trees not loaded, using simple shapes:', err.message); }
+tick();
 const arena = buildArena(scene, worldAssets);
 arena.setInterior(false);
 
@@ -95,6 +101,7 @@ try {
   GEO.vipNear = { back: get('Vip_Back_near'), pan: get('Vip_Pan_near'), frame: get('Vip_Frame_near') };
   GEO.vipFar = { back: get('Vip_Back_far'), pan: get('Vip_Pan_far'), frame: get('Vip_Frame_far') };
 } catch (err) { console.warn('Blender chair not loaded, using the built-in one:', err.message); }
+tick();
 const SHARED = new Set(Object.values(GEO).flatMap((g) => Object.values(g)));
 
 // The seating bowl from Blender (public/models/bowl.glb): stepped terraces with baked shading, aisle
@@ -114,6 +121,7 @@ try {
   scene.add(gltf.scene);
   (arena.codedTunnels || []).forEach((m) => (m.visible = false));
 } catch (err) { console.warn('Blender bowl not loaded, using the built-in terraces:', err.message); }
+tick();
 // The outside of the building from Blender (public/models/exterior.glb), matched to drone footage: round drum, cream roof,
 // patterned screen over dark glass, terrace, colonnade and white letters. The roof fades away when you enter.
 try {
@@ -135,6 +143,7 @@ try {
   arena.codedExterior.forEach((o) => (o.visible = false));
   arena.roofParts.length = 0; arena.roofParts.push(...roofMeshes);
 } catch (err) { console.warn('Blender exterior not loaded, using the built-in one:', err.message); }
+tick();
 // The centre stage from Blender (public/models/stage.glb), shown when the floor layout is "Centre stage".
 try {
   const loader = new GLTFLoader();
@@ -144,6 +153,7 @@ try {
   dressModel(gltf.scene, 0);
   gltf.scene.visible = false; scene.add(gltf.scene); arena.stageModel = gltf.scene;
 } catch (err) { console.warn('Blender stage not loaded, using the built-in one:', err.message); }
+tick();
 // The structure around the bowl from Blender (public/models/structure.glb): wall between the tiers, upper-tier
 // supports, furnished skyboxes, corner pillars, and the roof with its trusses, floodlights and scoreboard.
 // The roof is only shown from inside the arena, so the aerial view can still look in.
@@ -165,6 +175,7 @@ try {
   arena.interiorOnly.length = 0; arena.interiorOnly.push(roof);
   arena.setInterior(false);
 } catch (err) { console.warn('Blender structure not loaded, using the built-in interior:', err.message); }
+tick();
 // true when the Blender terrace for this section matches how the section is set up now
 const builtTerrace = (cfg) => {
   const m = bowl.get(cfg.id);
@@ -188,6 +199,13 @@ const tmp = new THREE.Matrix4();
 // ---------------------------------------------------------------- state
 let settings = {}, taken = {}, sections = new Map();
 let mode = 'intro', active = null, hoverSec = null, hoverSeat = -1, selected = null, bought = null;
+// One order can hold several seats. `basket` is every seat picked so far; `selected` is the one whose view is on screen.
+let basket = [];
+const MAX_SEATS = 8;
+const inBasket = (id) => basket.some((b) => b.id === id);
+const basketTotal = () => basket.reduce((n, b) => n + b.S.cfg.price, 0);
+// after the stands are rebuilt, point each picked seat at its new section (or drop it if the section has gone)
+function remapBasket() { basket = basket.filter((b) => { const S = sections.get(b.S.cfg.id); if (!S) return false; b.S = S; return true; }); if (selected && !basket.includes(selected)) selected = null; basket.forEach((b) => paint(b.S)); }
 let preview = null;     // on touch: the section tapped once, shown with its price before zooming in
 let ticketOff = false; // the buyer put the ticket away to look around
 let nav = 0;   // increases on every navigation so stale camera moves can be ignored
@@ -215,14 +233,14 @@ function freeColor(cfg, seat, rows) {
 }
 function seatColor(S, i) {
   const seat = S.seats[i], st = taken[seat.id];
-  if (selected && selected.id === seat.id) return pickC();
+  if (inBasket(seat.id)) return pickC();
   if (st === 's' || st === 'b') return C.sold;
   if (st === 'h') return holdC();
   if (mode === 'section' && S === active) return i === hoverSeat ? pickC() : S.free[i];
   return S === hoverSec ? pickC() : S.free[i];
 }
 // a seat is folded down when someone has it, or while you're pointing at it
-const isDown = (S, i) => S.armchair || !!taken[S.seats[i].id] || (selected && selected.id === S.seats[i].id) || (S === active && i === hoverSeat);
+const isDown = (S, i) => S.armchair || !!taken[S.seats[i].id] || inBasket(S.seats[i].id) || (S === active && i === hoverSeat);
 function paintSeat(S, i, animate = false) {
   if (!S || i < 0) return;
   const c = seatColor(S, i), target = isDown(S, i) ? A_DOWN : A_UP, key = S.cfg.id + ':' + i;
@@ -315,7 +333,7 @@ function extras(cfg) {
   if (cfg.tier === 'lower') { // white number on the dark wall behind the block
     const c = document.createElement('canvas'); c.width = 256; c.height = 112;
     const g = c.getContext('2d'); g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.font = '700 86px "Helvetica Neue", Arial, sans-serif'; g.fillText(cfg.name, 128, 60, 240);
+    g.font = '700 86px Geist, "Helvetica Neue", Arial, sans-serif'; g.fillText(cfg.name, 128, 60, 240);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.8), new THREE.MeshBasicMaterial({ map: t, transparent: true }));
     sign.userData.sign = true;
@@ -396,7 +414,7 @@ function degrade() {
   const keep = active && active.cfg.id;
   buildSections(lastList);
   active = sections.get(keep) || null;
-  if (selected && active) selected.S = active;
+  remapBasket();
   hoverSec = null; hoverSeat = -1; paint(active); showFrames();
 }
 
@@ -462,7 +480,9 @@ function renderDock() {
   $('hint').textContent = (HINTS[mode] || ['', ''])[touch ? 1 : 0];
   $('back').hidden = mode !== 'section';
   $('showticket').hidden = !(mode === 'seat' && ticketOff && selected);
-  const pick = mode === 'section' && touch && active && hoverSeat >= 0 && !taken[active.seats[hoverSeat].id] ? active.seats[hoverSeat] : null;
+  const bk = $('basket'); bk.hidden = !(basket.length && !bought && (mode === 'overview' || mode === 'section'));
+  if (!bk.hidden) bk.textContent = `${basket.length} seat${basket.length > 1 ? 's' : ''} picked · ${cur()} ${price(basketTotal())} · View`;
+  const pick = mode === 'section' && touch && active && hoverSeat >= 0 && (!taken[active.seats[hoverSeat].id] || inBasket(active.seats[hoverSeat].id)) ? active.seats[hoverSeat] : null;
   const sec = !pick && touch && preview && sections.get(preview.cfg.id) === preview && (mode === 'overview' || mode === 'section') ? preview : null;
   $('confirm').hidden = !pick && !sec;
   if (sec) $('confirm').innerHTML = `<div><small>${tierLabel(sec.cfg)}</small><b>${sec.cfg.name}</b><span>${cur()} ${price(sec.cfg.price)} · ${sec.left ? sec.left + ' seats left' : 'Sold out'}</span></div>${sec.left ? '<button data-act="zoom">Zoom in</button>' : ''}`;
@@ -488,33 +508,45 @@ async function enterArena() {
 }
 async function toOverview() {
   ++nav;
-  await releaseHold();
+  leaveSeat();
   const prev = active, hov = hoverSec; active = null; hoverSeat = -1; hoverSec = null;
   setMode('overview'); paint(prev); paint(hov);
   await fly(aerialPose(), 1100);
 }
 async function enterSection(S) {
   ++nav;
-  await releaseHold();
+  leaveSeat();
   if (depth < 1) { history.pushState({ d: 1 }, ''); depth = 1; }
   const prev = active, hov = hoverSec; active = S; hoverSec = null; hoverSeat = -1;
   rig.secZoom = startSecZoom(); rig.pan.set(0, 0, 0);
   setMode('section'); paint(prev); paint(hov); paint(S);
   await fly(sectionPose(S), 1100);
 }
+// Pick a seat: hold it for this buyer, add it to the order, then sit in it. Picking one already in the order just sits in it.
 async function chooseSeat(S, i) {
   const seat = S.seats[i];
-  const r = await post('/api/hold', { seatId: seat.id, clientId });
-  if (!r.ok) { toast('That seat was just taken. Pick another.'); return; }
+  let entry = basket.find((b) => b.id === seat.id);
+  if (!entry) {
+    if (bought) { basket = []; bought = null; }                     // the last order is finished: this starts a new one
+    if (basket.length >= MAX_SEATS) { toast(`You can pick up to ${MAX_SEATS} seats in one order`); return; }
+    const r = await post('/api/hold', { seatId: seat.id, clientId });
+    if (!r.ok) { toast(r.error && r.error.startsWith('You can') ? r.error : 'That seat was just taken. Pick another.'); return; }
+    entry = { ...seat, S, i }; basket.push(entry); taken[seat.id] = 'h';
+  }
+  await sitAt(entry);
+}
+async function sitAt(entry) {
+  const seat = entry, S = entry.S;
   const n = ++nav;
+  if (depth < 1) { history.pushState({ d: 1 }, ''); depth = 1; }
   if (depth < 2) { history.pushState({ d: 2 }, ''); depth = 2; }
-  const hov = hoverSec; hoverSec = null;
+  const hov = hoverSec, prev = active; hoverSec = null; active = S;
   ticketOff = false; document.body.dataset.ticket = 'on';
-  selected = { ...seat, S, i }; bought = null; hoverSeat = -1; taken[seat.id] = 'h';
-  setMode('seat'); paint(S); paint(hov);
+  selected = entry; hoverSeat = -1; $('ticket').hidden = true;
+  setMode('seat'); paint(prev); paint(S); paint(hov);
   const f = new THREE.Vector3(Math.sin(seat.ry), 0, Math.cos(seat.ry));
   const p = new THREE.Vector3(seat.x, seat.y, seat.z);
-  // 1) travel straight down to the chair, 2) sit in it and face the court
+  // 1) travel straight to the chair, 2) sit in it and face the court
   const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
   await fly({ pos: p.clone().add(new THREE.Vector3(0, 0.6, 0)).addScaledVector(fwd, -4.2), quat: camera.quaternion.clone() }, 900);
   if (n !== nav) return;
@@ -530,7 +562,7 @@ async function chooseSeat(S, i) {
   const shot = document.createElement('canvas'); shot.width = 360; shot.height = 440;
   const sc = Math.max(360 / canvas.width, 440 / canvas.height), sw = 360 / sc, sh = 440 / sc;
   shot.getContext('2d').drawImage(canvas, (canvas.width - sw) / 2, (canvas.height - sh) / 2, sw, sh, 0, 0, 360, 440);
-  try { selected.shot = shot.toDataURL('image/jpeg', 0.8); } catch { /* no picture, ticket still works */ }
+  try { entry.shot = shot.toDataURL('image/jpeg', 0.8); } catch { /* no picture, ticket still works */ }
   renderTicket();
 }
 async function backToSection() {
@@ -538,11 +570,19 @@ async function backToSection() {
   if (!S || !sections.has(S.cfg.id)) return toOverview();
   await enterSection(S);
 }
-async function releaseHold() {
+// Stand up from the seat. The seats stay in the order; a finished (paid) order is cleared.
+function leaveSeat() {
   if (!selected) return;
-  const s = selected; selected = null; $('ticket').hidden = true;
-  if (!bought) { if (taken[s.id] === 'h') delete taken[s.id]; post('/api/release', { clientId }); }
-  recount(s.S); paint(s.S);
+  selected = null; $('ticket').hidden = true;
+  if (bought) { const done = basket; basket = []; bought = null; done.forEach((b) => { recount(b.S); paint(b.S); }); }
+}
+// Take one seat out of the order and give it back.
+function removeSeat(entry) {
+  basket = basket.filter((b) => b !== entry);
+  if (taken[entry.id] === 'h') delete taken[entry.id];
+  post('/api/release', { clientId, seatId: entry.id });
+  if (selected === entry) selected = null;
+  recount(entry.S); paint(entry.S);
 }
 // Going back: on-screen buttons, Esc, and the phone's own back button or swipe all end up here.
 function show(d) {
@@ -589,13 +629,12 @@ function vipOffer() {
 async function upgrade() {
   const offer = vipOffer();
   if (!offer) return toast('The VIP boxes are sold out');
-  await releaseHold();
-  const prev = active; active = offer.S; paint(prev);
+  if (selected) removeSeat(selected);                              // the upgrade replaces the seat you were looking at
   chooseSeat(offer.S, offer.i);
 }
 function renderTicket() {
   if (!selected) return;
-  const { S } = selected, el = $('ticket');
+  const { S } = selected, el = $('ticket'), n = basket.length, many = n > 1;
   document.body.dataset.ticket = ticketOff ? 'off' : 'on';
   renderDock();
   if (ticketOff) { el.hidden = true; return; }
@@ -613,19 +652,20 @@ function renderTicket() {
         <div class="tk-grid"><div><small>Row</small><b>${selected.row}</b></div><div><small>Seat</small><b>${selected.num}</b></div><div><small>Gate</small><b>${S.cfg.gate || '—'}</b></div></div>
       </div>
       <div class="tk-stub">
-        <div class="tk-qr">${bought ? qrSvg(`BKARENA|${bought}|${selected.id}`) : '<span>QR code appears when the ticket is confirmed</span>'}</div>
+        <div class="tk-qr">${bought ? qrSvg(`BKARENA|${bought}|${basket.map((b) => b.id).join(',')}`) : '<span>QR code appears when the order is confirmed</span>'}</div>
         <p class="tk-code">${bought || 'Not paid yet'}</p>
-        <p class="tk-price">${cur()} ${price(S.cfg.price)}</p>
-        <span class="tk-admit">Admit one</span>
+        <p class="tk-price">${many ? `<small>${n} seats</small>` : ''}${cur()} ${price(basketTotal())}</p>
+        <span class="tk-admit">Admit ${n}</span>
       </div>
     </div>
+    ${many ? `<div class="tk-seats">${basket.map((b, k) => `<button data-seat="${k}" class="${b === selected ? 'on' : ''}">${b.S.cfg.name} · Row ${b.row} · Seat ${b.num}</button>`).join('')}</div>` : ''}
     <div class="tk-actions">
       ${bought
-        ? `<button data-d="1">Choose another seat</button><button data-d="0">Whole arena</button>`
-        : `<button class="primary" data-act="buy">Get this seat</button><button data-d="1">Another seat</button>
-           ${offer ? `<button class="wide" data-act="upgrade">Upgrade to a VIP box · +${cur()} ${price(offer.S.cfg.price - S.cfg.price)}</button>` : ''}`}
+        ? `<button data-d="1">Choose more seats</button><button data-d="0">Whole arena</button>`
+        : `<button class="primary" data-act="buy">${many ? `Get ${n} seats` : 'Get this seat'}</button><button data-d="1">Add another seat</button><button data-act="remove">Remove this seat</button>
+           ${offer ? `<button class="wide" data-act="upgrade">Upgrade this seat to a VIP box · +${cur()} ${price(offer.S.cfg.price - S.cfg.price)}</button>` : ''}`}
     </div>
-    <p class="tk-note">${bought ? 'Ticket confirmed. Demo only: no payment was taken.' : `Held for you for ${settings.holdMinutes || 10} minutes`}</p>`;
+    <p class="tk-note">${bought ? 'Order confirmed. Demo only: no payment was taken.' : `Held for you for ${settings.holdMinutes || 10} minutes`}</p>`;
 }
 function showTip(html, x, y) {
   const el = $('tip'); el.innerHTML = html; el.hidden = false;
@@ -685,7 +725,8 @@ function click() {
   pick();
   if (mode === 'section' && hoverSeat >= 0) {
     preview = null;
-    if (taken[active.seats[hoverSeat].id]) toast('That seat is taken. Pick a free one.');
+    const sid = active.seats[hoverSeat].id;
+    if (taken[sid] && !inBasket(sid)) toast('That seat is taken. Pick a free one.');
     else if (!touch) chooseSeat(active, hoverSeat); // with a finger: preview first, confirm with “Sit here”
   } else if (hoverSec) {
     // with a finger there is no hover, so the first tap shows the price and the second one zooms in
@@ -749,17 +790,20 @@ function applyLook() {
 $('enter').addEventListener('click', enterArena);
 // every "go back" control carries data-d: the level to return to (0 arena, 1 section)
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-d], [data-act]');
+  const t = e.target.closest('[data-d], [data-act], [data-seat]');
   if (!t) return;
   if (t.dataset.d !== undefined) return goTo(Number(t.dataset.d));
   if (t.dataset.act === 'sit' && active && hoverSeat >= 0) chooseSeat(active, hoverSeat);
   if (t.dataset.act === 'zoom' && preview) enterSection(preview);
   if (t.dataset.act === 'upgrade') upgrade();
   if (t.dataset.act === 'hide' || t.dataset.act === 'show') { ticketOff = t.dataset.act === 'hide'; renderTicket(); }
+  if (t.dataset.seat !== undefined && basket[Number(t.dataset.seat)]) sitAt(basket[Number(t.dataset.seat)]);   // look from another seat in the order
+  if (t.dataset.act === 'basket' && basket.length) sitAt(basket[basket.length - 1]);
+  if (t.dataset.act === 'remove' && selected) { removeSeat(selected); $('ticket').hidden = true; goTo(1); }
   if (t.dataset.act === 'buy' && selected) {
-    const r = await post('/api/purchase', { seatId: selected.id, clientId });
+    const r = await post('/api/purchase', { seatIds: basket.map((b) => b.id), clientId });
     if (!r.ok) { toast(r.error || 'Could not complete'); return; }
-    bought = r.code; taken[selected.id] = 's'; renderTicket();
+    bought = r.code; basket.forEach((b) => (taken[b.id] = 's')); renderTicket();
   }
 });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && depth > 0) goTo(depth - 1); });
@@ -778,14 +822,14 @@ async function load() {
   buildSections(state.sections);
   arena.setFloor(settings.floor);
   arena.setEvent(settings.eventName, settings.eventDate);
-  arena.setCourt(settings.courtStyle);
+  await arena.setCourt(settings.courtStyle);
   $('event-name').textContent = settings.eventName; $('event-date').textContent = settings.eventDate;
   $('hero-event').textContent = `${settings.eventName} · ${settings.eventDate}`;
   $('lg-free').style.background = real() ? 'linear-gradient(90deg,#1f8048 33%,#e6b422 33% 66%,#2f8fc8 66%)' : '#1f9d55';
   $('lg-pick').style.background = real() ? '#ff5a00' : '#fad201';
   $('lg-hold').style.background = real() ? '#8b5cf6' : '#00a1de';
   // a layout change while someone is zoomed in: stay if the section still exists, otherwise go back out
-  hoverSec = null; hoverSeat = -1;
+  hoverSec = null; hoverSeat = -1; remapBasket();
   if (mode === 'section' || mode === 'seat') {
     active = sections.get(keep) || null;
     if (!active) goTo(0);
@@ -800,7 +844,10 @@ function listen() {
     if (msg.type === 'config') return load();
     const touched = new Set();
     for (const [id, st] of msg.changes) {
-      if (selected && selected.id === id && st !== 's') { if (!st) { toast('Your hold on the seat ran out'); goTo(1); } continue; }
+      if (inBasket(id) && st !== 's') {                              // one of this buyer's own seats
+        if (!st) { const gone = basket.find((b) => b.id === id), wasOn = gone === selected; basket = basket.filter((b) => b !== gone); delete taken[id]; recount(gone.S); paint(gone.S); toast('Your hold on a seat ran out'); if (wasOn) { selected = null; $('ticket').hidden = true; goTo(1); } else { renderDock(); if (selected) renderTicket(); } }
+        continue;
+      }
       if (st) taken[id] = st; else delete taken[id];
       const S = sections.get(id.split(':')[0]); if (S) touched.add(S);
     }
@@ -852,8 +899,10 @@ function frame(now) {
 }
 
 resize();
-document.body.dataset.mode = 'intro';
+progress(0.95);
 await load();
+document.body.dataset.mode = 'intro';
+progress(1);
 listen();
 requestAnimationFrame(frame);
 window.__bk = { sections: () => sections, degrade, get lite() { return lite; }, rig, enterArena, enterSection, chooseSeat, get mode() { return mode; }, camera };

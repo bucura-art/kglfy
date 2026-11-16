@@ -12,15 +12,29 @@ let ENV = null;
 export const setEnvironment = (t) => { ENV = t; };
 export function reflect(mat, strength) { if (ENV && strength > 0) { mat.envMap = ENV; mat.envMapIntensity = strength; mat.needsUpdate = true; } return mat; }
 
-// Load every image up front, so textures can be handed out (and cloned with different repeats) without waiting.
-export async function preload() {
-  const loader = new THREE.TextureLoader(), files = ['sky.jpg', 'lattice_color.jpg', 'parking_color.jpg', 'parking_rough.jpg'];
-  for (const name of ['court', 'courtb', 'road']) files.push(`${name}_color.jpg`, `${name}_normal.jpg`, `${name}_rough.jpg`);
-  for (const name of Object.keys(TILE)) { files.push(`${name}_color.jpg`); if (!FLAT.has(name)) files.push(`${name}_normal.jpg`, `${name}_rough.jpg`); }
+// Load the images up front, so textures can be handed out (and cloned with different repeats) without waiting.
+// `onProgress(fraction)` is called as files arrive, for the loading screen. The court is not loaded here: only the
+// paint scheme in use is fetched, by loadSet().
+const loader = new THREE.TextureLoader();
+async function fetchAll(files, onProgress) {
+  let done = 0;
   await Promise.all(files.map(async (f) => {
-    try { const t = await loader.loadAsync('/textures/' + f); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; cache.set(f, t); }
-    catch { console.warn('texture missing:', f); }
+    if (!cache.has(f)) {
+      try { const t = await loader.loadAsync('/textures/' + f); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; cache.set(f, t); }
+      catch { console.warn('texture missing:', f); }
+    }
+    if (onProgress) onProgress(++done / files.length);
   }));
+}
+export async function preload(onProgress) {
+  const files = ['sky.jpg', 'lattice_color.jpg', 'parking_color.jpg', 'parking_rough.jpg', 'road_color.jpg', 'road_normal.jpg', 'road_rough.jpg'];
+  for (const name of Object.keys(TILE)) { files.push(`${name}_color.jpg`); if (!FLAT.has(name)) files.push(`${name}_normal.jpg`, `${name}_rough.jpg`); }
+  await fetchAll(files, onProgress);
+}
+const sets = new Map();
+export function loadSet(name) { // colour, relief and shine maps for one named texture, fetched once
+  if (!sets.has(name)) sets.set(name, fetchAll([`${name}_color.jpg`, `${name}_normal.jpg`, `${name}_rough.jpg`]));
+  return sets.get(name);
 }
 export function texture(file, { srgb = false, repeat = null } = {}) {
   const src = cache.get(file);

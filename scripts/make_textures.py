@@ -24,12 +24,15 @@ def normal_map(h, strength):
     nz = np.ones_like(h); l = np.sqrt(dx * dx + dy * dy + nz * nz)
     return np.dstack([(-dx / l) * 0.5 + 0.5, (dy / l) * 0.5 + 0.5, (nz / l) * 0.5 + 0.5])
 
-def save(name, color, height=None, rough=None, strength=4.0, q=88):
+def save(name, color, height=None, rough=None, strength=4.0, q=80, aux=1.0):
+    # File size matters: these are downloaded before the arena can be shown. Relief and shine maps tolerate more
+    # compression than colour, and `aux` shrinks them further for large textures.
     def img(a): return Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8))
+    def small(im): return im if aux == 1.0 else im.resize((int(im.width * aux), int(im.height * aux)), Image.LANCZOS)
     if color.ndim == 2: color = np.dstack([color] * 3)
-    img(color).save(os.path.join(OUT, name + "_color.jpg"), quality=q)
-    if height is not None: img(normal_map(height, strength)).save(os.path.join(OUT, name + "_normal.jpg"), quality=92)
-    if rough is not None: img(np.dstack([rough] * 3)).save(os.path.join(OUT, name + "_rough.jpg"), quality=85)
+    img(color).save(os.path.join(OUT, name + "_color.jpg"), quality=q, optimize=True)
+    if height is not None: small(img(normal_map(height, strength))).save(os.path.join(OUT, name + "_normal.jpg"), quality=76, optimize=True)
+    if rough is not None: small(img(rough)).save(os.path.join(OUT, name + "_rough.jpg"), quality=68, optimize=True)
     print(" ", name, color.shape[1], "x", color.shape[0])
 
 N = 512
@@ -45,7 +48,7 @@ F = 1024
 a, b, s = noise(F, 2.8, 4), noise(F, 1.2, 5), noise(F, 0.0, 6)
 v = 0.030 + 0.045 * a + 0.02 * b + (s > 0.992) * 0.07
 for k in (0, F // 2): v[k:k + 2, :] *= 0.4; v[:, k:k + 2] *= 0.4
-save("floor", np.dstack([v * 0.96, v, v * 1.03]), a * 0.3 + (s > 0.992) * 0.1, 0.16 + 0.34 * noise(F, 2.2, 7) + 0.06 * b, 1.2, q=92)
+save("floor", np.dstack([v * 0.96, v, v * 1.03]), a * 0.3 + (s > 0.992) * 0.1, 0.16 + 0.34 * noise(F, 2.2, 7) + 0.06 * b, 1.2, q=84, aux=0.5)
 
 # ---- paving (2.4 m): stone pavers 60 x 30 cm in running bond, each slightly different, dark joints.
 P = 1024; rows, cols = 8, 4
@@ -55,7 +58,7 @@ tone = np.random.default_rng(8).uniform(-0.07, 0.07, (rows, cols))[row, col]
 joint = ((yy % (P // rows)) < 4) | ((xo % (P // cols)) < 4)
 g = noise(P, 1.4, 9)
 c = 0.84 + tone + 0.08 * (g - 0.5); c[joint] = 0.52
-save("paving", c, np.where(joint, 0.0, 0.6 + 0.2 * g), 0.8 + 0.12 * (g - 0.5), 5.0)
+save("paving", c, np.where(joint, 0.0, 0.6 + 0.2 * g), 0.8 + 0.12 * (g - 0.5), 5.0, aux=0.5)
 
 # ---- asphalt (3 m): coarse grain with pale aggregate
 a, b = noise(N, 0.5, 10), noise(N, 2.2, 11)
@@ -77,7 +80,7 @@ rings = 0.5 + 0.5 * np.sin((fig * 9 + yy / pw * 0.6) * 6.283)
 c = 0.86 + tone + 0.12 * (gx - 0.5) + 0.05 * (rings - 0.5)
 seam = (yy % pw) < 2; ends = ((xx + shift) % (W // 2)) < 2
 c[seam | ends] *= 0.6
-save("wood", np.dstack([c, c * 0.97, c * 0.93]), np.where(seam | ends, 0.0, 0.7 + 0.3 * gx), 0.42 + 0.2 * (gx - 0.5), 3.0)
+save("wood", np.dstack([c, c * 0.97, c * 0.93]), np.where(seam | ends, 0.0, 0.7 + 0.3 * gx), 0.42 + 0.2 * (gx - 0.5), 3.0, aux=0.5)
 
 # ---- moulded plastic (30 cm): nearly flat with a fine orange-peel surface
 p = noise(256, 0.8, 17)
@@ -100,7 +103,7 @@ seam = ((yy % rw) < 3) | ((xo % cw) < 3)
 dots = (((yy % rw) - rw // 2) ** 2 + ((xo % (cw // 4)) - cw // 8) ** 2) < 14
 w = noise(R, 2.4, 20)
 c = 0.93 + 0.07 * (w - 0.5); c[seam] = 0.74; c[dots] = 0.55
-save("roof", c, np.where(seam | dots, 0.0, 1.0), 0.8 + 0.1 * w, 4.0)
+save("roof", c, np.where(seam | dots, 0.0, 1.0), 0.8 + 0.1 * w, 4.0, aux=0.5)
 
 # ---- grass (8 m)
 a, b = noise(N, 1.0, 21), noise(N, 2.6, 22)
@@ -114,7 +117,7 @@ save("led", led, None, None)
 # ---- basketball courts, 32 x 19 m at 64 px per metre: FIBA markings on maple strip flooring, in two paint schemes
 PX = 64; CW, CH = 32 * PX, 19 * PX
 m = lambda v: int(round(v * PX))
-def make_court(name, WOOD, KEY, SURROUND, LINE, circle, emblem):
+def make_court(name, WOOD, KEY, SURROUND, LINE, circle, emblem, lettering=False):
     im = Image.new("RGB", (CW, CH), SURROUND); d = ImageDraw.Draw(im)
     ox, oz, cw, ch = m(2), m(2), m(28), m(15); cy = oz + ch // 2; lw = max(3, round(0.05 * PX))
     d.rectangle([ox, oz, ox + cw, oz + ch], fill=WOOD)
@@ -148,10 +151,17 @@ def make_court(name, WOOD, KEY, SURROUND, LINE, circle, emblem):
             f1 = f2 = None
         if f1:
             d.text((cx0, cy - m(0.25)), "BK", font=f1, fill=(0x12, 0x14, 0x18), anchor="mm"); d.text((cx0, cy + m(0.85)), "ARENA", font=f2, fill=(0x12, 0x14, 0x18), anchor="mm")
-            for (txt, yy0, rot) in (("BK ARENA  ·  KIGALI", oz - m(1.0), 0), ("BK ARENA  ·  KIGALI", oz + ch + m(1.0), 180)):
-                band = Image.new("RGBA", (m(14), m(1.2)), (0, 0, 0, 0)); ImageDraw.Draw(band).text((m(7), m(0.6)), txt, font=ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", m(0.8)), fill=(255, 255, 255, 255), anchor="mm")
-                band = band.rotate(rot); im.paste(band, (cx0 - m(7), yy0 - m(0.6)), band)
         yy, xx = np.mgrid[0:CH, 0:CW]; painted = (xx - cx0) ** 2 + (yy - cy) ** 2 < R0 ** 2
+    if lettering:                                                     # venue name along both sidelines
+        try:
+            from PIL import ImageFont
+            cx0 = ox + cw // 2; fb = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", m(0.8))
+        except Exception:
+            fb = None
+        if fb:
+            for (txt, yy0, rot) in (("BK ARENA  ·  KIGALI", oz - m(1.0), 0), ("BK ARENA  ·  KIGALI", oz + ch + m(1.0), 180)):
+                band = Image.new("RGBA", (m(14), m(1.2)), (0, 0, 0, 0)); ImageDraw.Draw(band).text((m(7), m(0.6)), txt, font=fb, fill=(255, 255, 255, 255), anchor="mm")
+                band = band.rotate(rot); im.paste(band, (cx0 - m(7), yy0 - m(0.6)), band)
     base_rgb = np.asarray(im).astype(int)
     court = base_rgb.astype(np.float64) / 255
     yy, xx = np.mgrid[0:CH, 0:CW]; sw = 6; strip = yy // sw
@@ -162,9 +172,9 @@ def make_court(name, WOOD, KEY, SURROUND, LINE, circle, emblem):
     is_wood = np.all(np.abs(base_rgb - np.array(WOOD)) < 4, axis=2)
     shade = 1 + tone + 0.1 * (gx - 0.5); shade[seam] *= 0.82
     shade = np.where(is_wood, shade, 1 + (shade - 1) * 0.45)          # paint lets a little of the boards show through
-    save(name, court * shade[..., None], np.where(seam, 0.0, 1.0), np.where(is_wood, 0.24 + 0.08 * gx, 0.36), 1.5, q=92)
+    save(name, court * shade[..., None], np.where(seam, 0.0, 1.0), np.where(is_wood, 0.24 + 0.08 * gx, 0.36), 1.5, q=82, aux=0.5)
 make_court("court", (0xd3, 0xb0, 0x5c), (0x1b, 0x98, 0xa8), (0x1b, 0x98, 0xa8), (0xf4, 0xf6, 0xf2), True, False)       # teal scheme
-make_court("courtb", (0xdc, 0xbd, 0x8c), (0xf0, 0xc2, 0x1e), (0x1a, 0x8a, 0x4a), (0x1c, 0x1c, 0x1e), False, True)     # league scheme
+make_court("courtb", (0xdc, 0xbd, 0x8c), (0xf0, 0xc2, 0x1e), (0x1a, 0x8a, 0x4a), (0x1c, 0x1c, 0x1e), True, False, lettering=True)   # league scheme: plain centre circle, no logo
 
 # ---- road (12 m of a 10 m wide two-way road): asphalt with solid edge lines and a dashed centre line. u runs along the road.
 RW = 512; yy, xx = np.mgrid[0:RW, 0:RW]
@@ -206,8 +216,8 @@ img = sky * (1 - cover[..., None]) + cloud * cover[..., None]
 ground = np.array([0xb4, 0xbd, 0xa6]) / 255
 below = (yy >= SH // 2)[:, 0]
 img[below] = hor + (ground - hor) * np.clip((yy[below] - SH / 2) / 60, 0, 1)[..., None]
-Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8)).save(os.path.join(OUT, "sky.jpg"), quality=90)
+Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8)).save(os.path.join(OUT, "sky.jpg"), quality=80, optimize=True)
 print("  sky 2048 x 1024")
 
 lat = os.path.join(os.path.dirname(__file__), "..", "blender", "tex", "lattice.png")
-if os.path.exists(lat): Image.open(lat).convert("RGB").save(os.path.join(OUT, "lattice_color.jpg"), quality=90); print("  lattice")
+if os.path.exists(lat): Image.open(lat).convert("RGB").save(os.path.join(OUT, "lattice_color.jpg"), quality=82, optimize=True); print("  lattice")

@@ -174,3 +174,71 @@ body[data-mode="seat"][data-ticket="off"] #dock { display: flex; }
   #hint { font-size: 12px; }
   .tk-hide { top: -42px; }
 }
+
+/* =====================================================================================================
+   Restyle: Geist everywhere, smaller and squarer controls, black ticket, several seats in one order
+   ===================================================================================================== */
+html, body, button, input, select { font-family: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif; }
+#hero h1 { letter-spacing: -.045em; font-weight: 700; }
+
+/* controls: about half the padding and half the rounding of before */
+#enter { padding: 9px 18px; font-size: 14px; border-radius: 8px; margin: 18px 0 12px; box-shadow: 0 6px 22px #fad20140; }
+#crumbs { border-radius: 9px; padding: 2px 10px; font-size: 13px; }
+#crumbs button, #crumbs span { padding: 6px 3px; }
+#panel { border-radius: 8px; padding: 14px; }
+#hint { border-radius: 7px; padding: 6px 12px; font-size: 12px; }
+#tip { border-radius: 5px; } #toast { border-radius: 7px; padding: 7px 13px; font-size: 13px; }
+#back, #showticket, #basket { padding: 7px 14px; min-height: 32px; font-size: 13px; border-radius: 8px; font-weight: 600; }
+#basket { background: var(--yellow); color: #0b0f16; border: 0; box-shadow: 0 8px 26px #0008; }
+#confirm { border-radius: 9px; padding: 8px 8px 8px 14px; }
+#confirm button { min-height: 34px; padding: 0 14px; font-size: 13px; border-radius: 7px; }
+.legend i { border-radius: 1px; }
+
+/* ticket: black card, white type, yellow accents */
+#ticket { --ink: #f3f1ea; --paper: #0c0d0f; width: min(620px, calc(100vw - 44px)); filter: drop-shadow(0 22px 44px #000d); }
+.tk { font-family: "Geist", system-ui, sans-serif; background: var(--paper); color: var(--ink); border-radius: 8px; min-height: 196px; border: 1px solid #ffffff1c; }
+.tk-view { border-right: 0; width: 148px; }
+.tk-view span { font-family: inherit; border-radius: 3px; background: #000a; }
+.tk-main { padding: 16px 18px 14px; }
+.tk-event { font-size: 11px; letter-spacing: .14em; font-weight: 600; color: var(--yellow); }
+.tk-date { font-size: 12px; opacity: .7; }
+.tk-main h2 { font-size: 32px; font-weight: 600; letter-spacing: -.03em; }
+.tk-main h2 small { letter-spacing: .14em; opacity: .55; font-weight: 500; }
+.tk-grid { border-top: 1px solid #ffffff26; }
+.tk-grid small { opacity: .55; } .tk-grid b { font-weight: 600; font-size: 22px; letter-spacing: -.02em; }
+.tk-stub { border-left: 2px dashed #ffffff40; }
+.tk-qr { background: #f3f1ea; border-radius: 5px; padding: 6px; width: 98px; height: 98px; }
+.tk-qr svg path { fill: #0c0d0f; }
+.tk-qr span { color: #0c0d0f; border: 0; font-family: inherit; opacity: .75; padding: 4px; }
+.tk-code { font-family: "Geist Mono", ui-monospace, Menlo, monospace; font-weight: 500; opacity: .8; }
+.tk-price { font-size: 16px; font-weight: 600; color: var(--yellow); }
+.tk-price small { display: block; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink); opacity: .55; font-weight: 500; }
+.tk-admit { opacity: .5; font-size: 10px; }
+/* the seats in this order: tap one to look from it */
+.tk-seats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tk-seats button { border: 1px solid #ffffff30; background: #0c0d0fd9; color: #f3f1ea; font-size: 12px; padding: 5px 9px; border-radius: 6px; backdrop-filter: blur(8px); }
+.tk-seats button.on { background: var(--yellow); border-color: var(--yellow); color: #0b0f16; font-weight: 600; }
+.tk-actions { gap: 6px; margin-top: 8px; }
+.tk-actions button { min-height: 30px; font-size: 13px; padding: 0 10px; border-radius: 7px; font-weight: 500; }
+.tk-actions .primary { font-weight: 700; }
+.tk-hide { min-height: 26px; padding: 0 10px; font-size: 12px; border-radius: 6px; top: -34px; font-weight: 500; }
+.tk-note { font-size: 11px; margin-top: 6px; }
+@media (max-width: 720px) {
+  #panel { border-radius: 7px; padding: 6px 10px; }
+  #crumbs { border-radius: 8px; }
+  #enter { min-height: 38px; }
+  .tk-actions button { min-height: 34px; }
+  #back, #showticket, #basket { min-height: 36px; }
+  #confirm button { min-height: 38px; }
+  .tk-hide { top: -32px; }
+  .tk-main h2 { font-size: 24px; }
+}
+
+/* ---- loading screen */
+#loader { position: fixed; inset: 0; z-index: 50; display: grid; place-content: center; justify-items: center; gap: 14px; background: #0b0d10; color: #f3f1ea; transition: opacity .5s; }
+#loader.done { opacity: 0; pointer-events: none; }
+#loader b { letter-spacing: .3em; font-size: 15px; font-weight: 600; }
+#loader p { font-size: 12px; color: #ffffff90; font-variant-numeric: tabular-nums; }
+.load-bar { width: min(260px, 60vw); height: 3px; background: #ffffff1f; border-radius: 2px; overflow: hidden; }
+.load-bar i { display: block; height: 100%; width: 0; background: var(--yellow); transition: width .25s; }
+body[data-mode="loading"] .top, body[data-mode="loading"] #hero, body[data-mode="loading"] #dock { visibility: hidden; }

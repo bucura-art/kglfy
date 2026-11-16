@@ -5,6 +5,7 @@ import { createServer as createVite } from 'vite';
 import { defaultSections, buildSeats, seatCount, seatId, DEFAULT_SETTINGS, TIERS, LAYOUT_VERSION } from './shared/layout.js';
 
 const PORT = Number(process.env.PORT || 4170);
+const MAX_SEATS = 8; // most seats one buyer can hold in a single order
 const db = new DatabaseSync(new URL('./arena.db', import.meta.url).pathname);
 db.exec(`
   CREATE TABLE IF NOT EXISTS sections (id TEXT PRIMARY KEY, pos INTEGER, config TEXT NOT NULL);
@@ -123,24 +124,25 @@ async function api(req, res, url) {
     if (!clientId || !sec || !JSON.parse(sec.config).enabled) return send(res, 400, { error: 'Unknown seat' });
     const cur = q.seat.get(id);
     if (cur && !(cur.status === 'held' && (cur.holder === clientId || cur.expires < Date.now()))) return send(res, 409, { error: 'Seat already taken' });
-    const changes = [];
-    for (const r of q.heldBy.all(clientId)) if (r.id !== id) { q.delSeat.run(r.id); changes.push([r.id, null]); }
+    // one buyer can hold several seats for one order, up to MAX_SEATS
+    if (q.heldBy.all(clientId).filter((r) => r.id !== id).length >= MAX_SEATS) return send(res, 409, { error: `You can pick up to ${MAX_SEATS} seats in one order` });
     const expires = Date.now() + getSettings().holdMinutes * 60000;
     q.putSeat.run(id, sectionId, 'held', clientId, expires);
-    changes.push([id, 'h']);
-    broadcast({ type: 'seats', changes });
+    broadcast({ type: 'seats', changes: [[id, 'h']] });
     return send(res, 200, { ok: true, expires });
   }
   if (path === '/api/release' && m === 'POST') {
-    const changes = q.heldBy.all(String(body.clientId)).map((r) => { q.delSeat.run(r.id); return [r.id, null]; });
+    // release one seat (seatId) or everything this buyer holds
+    const changes = q.heldBy.all(String(body.clientId)).filter((r) => !body.seatId || r.id === body.seatId).map((r) => { q.delSeat.run(r.id); return [r.id, null]; });
     if (changes.length) broadcast({ type: 'seats', changes });
     return send(res, 200, { ok: true });
   }
   if (path === '/api/purchase' && m === 'POST') {
-    const cur = q.seat.get(body.seatId);
-    if (!cur || cur.status !== 'held' || cur.holder !== body.clientId) return send(res, 409, { error: 'Your hold on this seat has expired' });
-    q.putSeat.run(cur.id, cur.section, 'sold', null, null);
-    broadcast({ type: 'seats', changes: [[cur.id, 's']] });
+    const ids = Array.isArray(body.seatIds) ? body.seatIds.slice(0, MAX_SEATS) : [body.seatId];
+    const rows = ids.map((id) => q.seat.get(String(id)));
+    if (!rows.length || rows.some((cur) => !cur || cur.status !== 'held' || cur.holder !== body.clientId)) return send(res, 409, { error: 'Your hold on a seat has expired' });
+    tx(() => rows.forEach((cur) => q.putSeat.run(cur.id, cur.section, 'sold', null, null)));
+    broadcast({ type: 'seats', changes: rows.map((cur) => [cur.id, 's']) });
     return send(res, 200, { ok: true, code: 'BK-' + Math.random().toString(36).slice(2, 8).toUpperCase() });
   }
 

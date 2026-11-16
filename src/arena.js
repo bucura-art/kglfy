@@ -1,7 +1,7 @@
 // The building and everything that isn't a seat: ground, facade, roof, court, stage, scoreboard.
 import * as THREE from 'three';
 import { CORNER, TUNNEL_HALF, TUNNEL_ROOF } from '../shared/layout.js';
-import { dress, texture, reflect } from './textures.js';
+import { dress, texture, reflect, loadSet } from './textures.js';
 
 export const COLORS = { green: 0x1f9d55, yellow: 0xfad201, blue: 0x00a1de, sold: 0x5a6068, black: 0x121418,
   rGreen: 0x1f8048, rYellow: 0xe6b422, rBlue: 0x2f8fc8, orange: 0xff5a00, violet: 0x8b5cf6 }; // r* = the real seat colours
@@ -71,7 +71,7 @@ function storefrontTexture() {
 }
 function lettersTexture() {
   return canvasTexture(1400, 240, (g, w, h) => {
-    g.font = '900 210px "Arial Black", "Helvetica Neue", Arial, sans-serif';
+    g.font = '900 210px "Arial Black", Geist, "Helvetica Neue", Arial, sans-serif';
     g.textBaseline = 'middle'; g.textAlign = 'center';
     const text = 'BK ARENA', step = w / (text.length + 0.3);
     g.fillStyle = '#0b0b0c';
@@ -86,10 +86,10 @@ function drawScreen(g, w, h, name, date) {
   for (let x = -h; x < w; x += 28) { g.beginPath(); g.moveTo(x, h); g.lineTo(x + h, 0); g.stroke(); }
   g.textAlign = 'center'; g.textBaseline = 'middle';
   let size = 104; const label = String(name || 'BK ARENA').toUpperCase();
-  do { g.font = `800 ${size}px "Helvetica Neue", Arial, sans-serif`; size -= 6; } while (g.measureText(label).width > w * 0.86 && size > 30);
+  do { g.font = `800 ${size}px Geist, "Helvetica Neue", Arial, sans-serif`; size -= 6; } while (g.measureText(label).width > w * 0.86 && size > 30);
   g.fillStyle = '#f5d36b'; g.fillRect(w * 0.3, h * 0.2, w * 0.4, 4); g.fillRect(w * 0.3, h * 0.72, w * 0.4, 4);
   g.fillStyle = '#ffffff'; g.fillText(label, w / 2, h * 0.47);
-  g.font = '500 26px "Helvetica Neue", Arial, sans-serif'; g.fillStyle = '#f5d36b';
+  g.font = '500 26px Geist, "Helvetica Neue", Arial, sans-serif'; g.fillStyle = '#f5d36b';
   g.fillText(String(date || ''), w / 2, h * 0.85);
 }
 
@@ -114,13 +114,13 @@ function concourseTexture() {
 function ribbonTexture() {
   return canvasTexture(1024, 64, (g, w, h) => {
     g.fillStyle = '#0a1a3a'; g.fillRect(0, 0, w, h);
-    g.font = '800 34px "Helvetica Neue", Arial, sans-serif'; g.textBaseline = 'middle';
+    g.font = '800 34px Geist, "Helvetica Neue", Arial, sans-serif'; g.textBaseline = 'middle';
     for (let x = 0, i = 0; x < w; x += 256, i++) {
       g.fillStyle = '#e9f3ff'; g.fillRect(x + 6, 10, 112, 44);
       g.fillStyle = '#0a1a3a'; g.fillText('BK', x + 14, 33); g.fillStyle = '#1668c4'; g.fillText('ARENA', x + 62, 33, 52);
       g.fillStyle = ['#fad201', '#00a1de', '#1f9d55', '#ffffff'][i % 4]; g.fillRect(x + 130, 10, 112, 44);
-      g.fillStyle = '#0a1a3a'; g.font = '700 22px "Helvetica Neue", Arial, sans-serif'; g.fillText('KIGALI', x + 146, 33);
-      g.font = '800 34px "Helvetica Neue", Arial, sans-serif';
+      g.fillStyle = '#0a1a3a'; g.font = '700 22px Geist, "Helvetica Neue", Arial, sans-serif'; g.fillText('KIGALI', x + 146, 33);
+      g.font = '800 34px Geist, "Helvetica Neue", Arial, sans-serif';
     }
   });
 }
@@ -149,8 +149,8 @@ function screenTexture(lines) {
     g.fillStyle = '#10151d'; g.fillRect(0, 0, w, h);
     g.strokeStyle = '#05070a'; g.lineWidth = 14; g.strokeRect(0, 0, w, h);
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#f5d36b';
-    g.font = '800 76px "Helvetica Neue", Arial, sans-serif'; g.fillText(lines[0], w / 2, h * 0.42);
-    g.fillStyle = '#dfe7f2'; g.font = '500 30px "Helvetica Neue", Arial, sans-serif'; g.fillText(lines[1], w / 2, h * 0.7);
+    g.font = '800 76px Geist, "Helvetica Neue", Arial, sans-serif'; g.fillText(lines[0], w / 2, h * 0.42);
+    g.fillStyle = '#dfe7f2'; g.font = '500 30px Geist, "Helvetica Neue", Arial, sans-serif'; g.fillText(lines[1], w / 2, h * 0.7);
   });
 }
 // Build a mesh from a list of quads: each quad is four [x, y, z] corners in order.
@@ -236,7 +236,7 @@ function floorTexture() {
 }
 function textSprite(text, { size = 120, color = '#fff', glow = null } = {}) {
   const tex = canvasTexture(1024, 256, (g, w, h) => {
-    g.font = `800 ${size}px "Helvetica Neue", Arial, sans-serif`;
+    g.font = `800 ${size}px Geist, "Helvetica Neue", Arial, sans-serif`;
     g.textAlign = 'center'; g.textBaseline = 'middle';
     if (glow) { g.shadowColor = glow; g.shadowBlur = 40; }
     g.fillStyle = color; g.fillText(text, w / 2, h / 2);
@@ -496,8 +496,8 @@ export function buildArena(scene, assets = {}) {
   const boardTex = canvasTexture(768, 480, (g, w, h) => {
     g.fillStyle = '#16233d'; g.fillRect(0, 0, w, h);
     g.fillStyle = '#00a1de'; g.fillRect(0, 0, w, 150); g.fillStyle = '#fad201'; g.fillRect(0, 150, w, 60); g.fillStyle = '#20603d'; g.fillRect(0, 210, w, 60);
-    g.fillStyle = '#fff'; g.textAlign = 'left'; g.font = '500 44px "Helvetica Neue", Arial, sans-serif'; g.fillText('Welcome to', 40, 360);
-    g.font = '800 64px "Helvetica Neue", Arial, sans-serif'; g.fillText('BK Arena', 40, 430);
+    g.fillStyle = '#fff'; g.textAlign = 'left'; g.font = '500 44px Geist, "Helvetica Neue", Arial, sans-serif'; g.fillText('Welcome to', 40, 360);
+    g.font = '800 64px Geist, "Helvetica Neue", Arial, sans-serif'; g.fillText('BK Arena', 40, 430);
   });
   const board = new THREE.Mesh(new THREE.BoxGeometry(10, 6.2, 0.4), [0, 1, 2, 3].map(() => new THREE.MeshStandardMaterial({ color: 0x1a1f29 }))
     .concat([new THREE.MeshBasicMaterial({ map: boardTex }), new THREE.MeshStandardMaterial({ color: 0x1a1f29 })]));
@@ -533,8 +533,10 @@ export function buildArena(scene, assets = {}) {
   const cm = new THREE.Mesh(new THREE.PlaneGeometry(32, 19), new THREE.MeshStandardMaterial({ roughness: 1 }));
   cm.rotation.x = -Math.PI / 2; cm.position.y = 0.04; court.add(cm);
   // the court's paint scheme: 'league' (wood, yellow keys, green surround, black lines) or 'teal'
-  A.setCourt = (style) => {
-    const name = style === 'teal' ? 'court' : 'courtb', c = texture(name + '_color.jpg', { srgb: true });
+  A.setCourt = async (style) => {
+    const name = style === 'teal' ? 'court' : 'courtb';
+    await loadSet(name);                                            // only the scheme in use is downloaded
+    const c = texture(name + '_color.jpg', { srgb: true });
     if (!c) { cm.material.map = courtTexture(); cm.material.roughness = 0.32; cm.material.needsUpdate = true; return; }
     cm.material.map = c; cm.material.normalMap = texture(name + '_normal.jpg'); cm.material.normalScale = new THREE.Vector2(0.35, 0.35); cm.material.roughnessMap = texture(name + '_rough.jpg'); cm.material.needsUpdate = true;
     logo.visible = style !== 'teal' && !!logo.material.map;
@@ -544,7 +546,6 @@ export function buildArena(scene, assets = {}) {
   logo.rotation.x = -Math.PI / 2; logo.position.y = 0.05; logo.visible = false; court.add(logo);
   fetch('/textures/center_logo.png', { method: 'HEAD' }).then((r) => { if (!r.ok || !(r.headers.get('content-type') || '').startsWith('image')) return;
     new THREE.TextureLoader().load('/textures/center_logo.png', (t) => { t.colorSpace = THREE.SRGBColorSpace; logo.material.map = t; logo.material.needsUpdate = true; logo.visible = true; }); }).catch(() => {});
-  A.setCourt('league');
   // scorer's table on the north sideline, between the two courtside blocks
   const table = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.78, 0.7), new THREE.MeshStandardMaterial({ color: 0x0c0d10, roughness: 0.5 })); table.position.set(0, 0.39, -10.0); court.add(table);
   const tableFront = new THREE.Mesh(new THREE.PlaneGeometry(4.1, 0.62), new THREE.MeshBasicMaterial({ color: 0x1d5fd6 })); tableFront.position.set(0, 0.4, -9.64); court.add(tableFront);
@@ -720,7 +721,7 @@ export function buildArena(scene, assets = {}) {
 // Floating section number above each block.
 export function makeLabel(text) {
   const tex = canvasTexture(256, 128, (g, w, h) => {
-    g.font = `700 ${text.length > 4 ? 54 : 72}px "Helvetica Neue", Arial, sans-serif`;
+    g.font = `700 ${text.length > 4 ? 54 : 72}px Geist, "Helvetica Neue", Arial, sans-serif`;
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.lineWidth = 10; g.strokeStyle = 'rgba(0,0,0,.75)'; g.strokeText(text, w / 2, h / 2);
     g.fillStyle = '#fff'; g.fillText(text, w / 2, h / 2);

@@ -5,6 +5,7 @@ import { defaultSections, buildSeats, seatId, DEFAULT_SETTINGS, TIERS, LAYOUT_VE
 
 const KEY = 'bk-arena-demo';
 const CODE = { sold: 's', held: 'h', blocked: 'b' };
+const MAX_SEATS = 8;
 let db = null, channel = null;
 const listeners = new Set();
 
@@ -56,23 +57,22 @@ function handle(method, path, body) {
     if (!body.clientId || !sec || !sec.enabled) return reply(400, { error: 'Unknown seat' });
     const cur = db.seats[id];
     if (cur && !(cur[0] === 'held' && (cur[1] === body.clientId || cur[2] < Date.now()))) return reply(409, { error: 'Seat already taken' });
-    const changes = [];
-    for (const [k, v] of Object.entries(db.seats)) if (v[0] === 'held' && v[1] === body.clientId && k !== id) { delete db.seats[k]; changes.push([k, null]); }
+    if (Object.entries(db.seats).filter(([k, v]) => v[0] === 'held' && v[1] === body.clientId && k !== id).length >= MAX_SEATS) return reply(409, { error: `You can pick up to ${MAX_SEATS} seats in one order` });
     const expires = Date.now() + settings().holdMinutes * 60000;
-    db.seats[id] = ['held', body.clientId, expires]; changes.push([id, 'h']);
-    save(); broadcast({ type: 'seats', changes });
+    db.seats[id] = ['held', body.clientId, expires];
+    save(); broadcast({ type: 'seats', changes: [[id, 'h']] });
     return reply(200, { ok: true, expires });
   }
   if (path === '/api/release') {
     const changes = [];
-    for (const [k, v] of Object.entries(db.seats)) if (v[0] === 'held' && v[1] === String(body.clientId)) { delete db.seats[k]; changes.push([k, null]); }
+    for (const [k, v] of Object.entries(db.seats)) if (v[0] === 'held' && v[1] === String(body.clientId) && (!body.seatId || k === body.seatId)) { delete db.seats[k]; changes.push([k, null]); }
     if (changes.length) { save(); broadcast({ type: 'seats', changes }); }
     return reply(200, { ok: true });
   }
   if (path === '/api/purchase') {
-    const cur = db.seats[body.seatId];
-    if (!cur || cur[0] !== 'held' || cur[1] !== body.clientId) return reply(409, { error: 'Your hold on this seat has expired' });
-    db.seats[body.seatId] = ['sold']; save(); broadcast({ type: 'seats', changes: [[body.seatId, 's']] });
+    const ids = Array.isArray(body.seatIds) ? body.seatIds.slice(0, MAX_SEATS) : [body.seatId];
+    if (!ids.length || ids.some((k) => { const cur = db.seats[k]; return !cur || cur[0] !== 'held' || cur[1] !== body.clientId; })) return reply(409, { error: 'Your hold on a seat has expired' });
+    ids.forEach((k) => (db.seats[k] = ['sold'])); save(); broadcast({ type: 'seats', changes: ids.map((k) => [k, 's']) });
     return reply(200, { ok: true, code: 'BK-' + Math.random().toString(36).slice(2, 8).toUpperCase() });
   }
   if (path === '/api/admin/settings' && method === 'PUT') {
