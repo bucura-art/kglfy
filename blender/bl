@@ -1,0 +1,3 @@
+#!/bin/sh
+# Shortcut: ./blender/bl exec file.py | ./blender/bl shot out.png | ./blender/bl call tool '{json}'
+cd "$(dirname "$0")/.." && exec "$HOME/.blender-mcp/venv/bin/python" scripts/blender_call.py "$@" 2>&1 | grep -v "INFO  \|Request   \|^ *$"
