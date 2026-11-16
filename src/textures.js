@@ -20,7 +20,7 @@ async function fetchAll(files, onProgress) {
   let done = 0;
   await Promise.all(files.map(async (f) => {
     if (!cache.has(f)) {
-      try { const t = await loader.loadAsync('/textures/' + f); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; cache.set(f, t); }
+      try { const t = await loader.loadAsync('/textures/' + f + '?v=' + __BUILD__); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; cache.set(f, t); }
       catch { console.warn('texture missing:', f); }
     }
     if (onProgress) onProgress(++done / files.length);

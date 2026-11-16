@@ -421,8 +421,8 @@ function surroundings(scene, assets = {}) {
     g.strokeStyle = '#e5be01'; g.lineWidth = 2; for (let k = 0; k < 24; k++) { const t = (k / 24) * Math.PI * 2; g.beginPath(); g.moveTo(w * 0.8 + Math.cos(t) * 15, h * 0.24 + Math.sin(t) * 15); g.lineTo(w * 0.8 + Math.cos(t) * 23, h * 0.24 + Math.sin(t) * 23); g.stroke(); }
   });
   const flags = [];
-  for (let i = 0; i < 9; i++) {
-    const a = (58 + i * 8) * deg, x = Math.cos(a) * (RX + 61), z = Math.sin(a) * (RZ + 61);
+  for (const angle of [22, 29, 36, 43, 137, 144, 151, 158]) {      // two groups either side of the entrance, clear of the opening view
+    const a = angle * deg, x = Math.cos(a) * (RX + 61), z = Math.sin(a) * (RZ + 61);
     const pole = add(new THREE.CylinderGeometry(0.07, 0.09, 11, 8), poleMat); pole.position.set(x, 5.3, z);
     const geo = new THREE.PlaneGeometry(3.4, 2.2, 8, 1); geo.translate(1.7, 0, 0);
     const flag = add(geo, new THREE.MeshStandardMaterial({ map: flagTex, side: THREE.DoubleSide, roughness: 0.9 })); flag.position.set(x, 9.6, z); flag.rotation.y = 0.5;

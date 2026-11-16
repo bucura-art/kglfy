@@ -47,7 +47,7 @@ const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 3000);
 // cars, trees and shrubs modelled in Blender (public/models/world.glb); the surroundings fall back to simple shapes without them
 const worldAssets = {};
 try {
-  const g = await new GLTFLoader().loadAsync('/models/world.glb'), geo = (n) => { const o = g.scene.getObjectByName(n); return o && o.geometry; };
+  const g = await new GLTFLoader().loadAsync('/models/world.glb?v=' + __BUILD__), geo = (n) => { const o = g.scene.getObjectByName(n); return o && o.geometry; };
   worldAssets.cars = [1, 2, 3].map((n) => ({ body: geo(`Car${n}_Body`), glass: geo(`Car${n}_Glass`), trim: geo(`Car${n}_Trim`), lights: geo(`Car${n}_Lights`) })).filter((c) => c.body && c.glass);
   worldAssets.trees = ['Tree1', 'Tree2', 'Tree3'].map(geo).filter(Boolean); worldAssets.bush = geo('Bush');
   if (!worldAssets.trees.length) delete worldAssets.trees;
@@ -93,7 +93,7 @@ function makePan(curve) {
 // If the file can't be loaded, the simple chairs built in code above are used instead.
 const GEO = { far: { back: makeBack(1), pan: makePan(1), frame: frameGeo }, near: { back: makeBack(3), pan: makePan(3), frame: frameGeo } };
 try {
-  const gltf = await new GLTFLoader().loadAsync('/models/chair.glb');
+  const gltf = await new GLTFLoader().loadAsync('/models/chair.glb?v=' + __BUILD__);
   const get = (name) => { const o = gltf.scene.getObjectByName(name); if (!o || !o.geometry) throw new Error('missing ' + name); return o.geometry; };
   GEO.near = { back: get('Back_near'), pan: get('Pan_near'), frame: get('Frame_near') };
   GEO.far = { back: get('Back_far'), pan: get('Pan_far'), frame: get('Frame_far') };
@@ -111,7 +111,7 @@ const bowl = new Map();
 try {
   const loader = new GLTFLoader();
   loader.setDRACOLoader(new DRACOLoader().setDecoderPath('/draco/'));
-  const gltf = await loader.loadAsync('/models/bowl.glb');
+  const gltf = await loader.loadAsync('/models/bowl.glb?v=' + __BUILD__);
   gltf.scene.traverse((o) => {
     if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; if (o.material.emissive && o.material.emissive.getHex()) o.material.emissiveIntensity = 0.3; } // tunnel doorways glow softly, not glare
     const id = o.userData && o.userData.section;
@@ -127,7 +127,7 @@ tick();
 try {
   const loader = new GLTFLoader();
   loader.setDRACOLoader(new DRACOLoader().setDecoderPath('/draco/'));
-  const gltf = await loader.loadAsync('/models/exterior.glb');
+  const gltf = await loader.loadAsync('/models/exterior.glb?v=' + __BUILD__);
   const roofMeshes = [];
   gltf.scene.traverse((o) => {
     if (!o.isMesh) return;
@@ -148,7 +148,7 @@ tick();
 try {
   const loader = new GLTFLoader();
   loader.setDRACOLoader(new DRACOLoader().setDecoderPath('/draco/'));
-  const gltf = await loader.loadAsync('/models/stage.glb');
+  const gltf = await loader.loadAsync('/models/stage.glb?v=' + __BUILD__);
   gltf.scene.traverse((o) => { if (o.isMesh) o.material.side = THREE.DoubleSide; });
   dressModel(gltf.scene, 0);
   gltf.scene.visible = false; scene.add(gltf.scene); arena.stageModel = gltf.scene;
@@ -160,7 +160,7 @@ tick();
 try {
   const loader = new GLTFLoader();
   loader.setDRACOLoader(new DRACOLoader().setDecoderPath('/draco/'));
-  const gltf = await loader.loadAsync('/models/structure.glb');
+  const gltf = await loader.loadAsync('/models/structure.glb?v=' + __BUILD__);
   gltf.scene.traverse((o) => {
     if (!o.isMesh) return;
     o.material.side = THREE.DoubleSide;
