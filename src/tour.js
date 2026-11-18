@@ -22,7 +22,7 @@ const local = (v, x, north) => { const c = Math.cos(v.rot), s = Math.sin(v.rot);
 const VENUES = [
   { id: 'bk', name: 'BK Arena', kind: 'Indoor arena · 10,000 seats', file: 'exterior.glb', pos: [0, 0], rot: -135 * deg, top: 34,
     text: 'The round arena with the patterned band under its cream roof. Home of the Basketball Africa League finals, concerts and conferences.',
-    link: ['Choose a seat', '/'], air: { dist: 250, az: -40, el: 30 }, walk: [0, 104, 0, 0], reach: 135 },
+    air: { dist: 250, az: -40, el: 30 }, walk: [0, 104, 0, 0], reach: 135 },
   { id: 'amahoro', name: 'Amahoro Stadium', kind: 'National stadium · 45,000 seats', file: 'amahoro.glb', pos: [-135.3, 205.2], rot: 9.9 * deg, top: 48,
     text: 'Rebuilt and reopened in 2024: a full roof of scalloped vaults over a bowl wrapped in a leaning screen of imigongo patterns.',
     air: { dist: 430, az: -70, el: 34 }, walk: [-170, 0, 0, 0], reach: 185, inside: { label: 'Stand on the pitch', at: [44, -70], look: [-10, 30] } },
@@ -370,7 +370,7 @@ function lookForOffer() {
   let o = null; const p = camera.position;
   if (mode === 'walk' && !tween) {
     const bk = VENUES[0], am = VENUES[1], e = local(bk, 0, 104);
-    if (Math.hypot(p.x - e[0], p.z - e[1]) < 55) o = { text: 'Go inside and choose your seat', run: () => { location.href = '/'; } };
+    if (Math.hypot(p.x - e[0], p.z - e[1]) < 55) o = { text: 'Explore the arena entrance', run: () => { const g = groundPose(bk); landAt(g.pos.x, g.pos.z, g.look); } };
     else {
       const dx = p.x - am.pos[0], dz = p.z - am.pos[1], c = Math.cos(am.rot), s = Math.sin(am.rot), X = dx * c - dz * s, N = -dx * s - dz * c, k = (X / 92) ** 2 + (N / 125) ** 2;
       if (k < 0.85) o = { text: 'Leave the stadium', run: () => { const g = groundPose(am); landAt(g.pos.x, g.pos.z, g.look); } };

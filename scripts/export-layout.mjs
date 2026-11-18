@@ -4,11 +4,7 @@
 import fs from 'node:fs';
 import { defaultSections, buildSeats, CORNER, TUNNEL_HALF, TUNNEL_ROOF, LAYOUT_VERSION } from '../shared/layout.js';
 
-let sections = defaultSections();
-try { // prefer what the running site has (names, prices, paused sections, added floor blocks)
-  const res = await fetch('http://localhost:4170/api/state', { signal: AbortSignal.timeout(2000) });
-  if (res.ok) sections = (await res.json()).sections;
-} catch { /* site not running: use the built-in layout */ }
+const sections = defaultSections();
 
 const r = (n) => Math.round(n * 1000) / 1000;
 const out = {

@@ -3,66 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <title>BK Arena · Choose your seat</title>
-  <link rel="stylesheet" href="/src/style.css">
-  <link rel="stylesheet" href="/src/glass.css">
+  <meta http-equiv="refresh" content="0; url=/tour.html">
+  <title>Kigali Sports Complex · Explore</title>
 </head>
-<body data-mode="loading">
-  <div id="loader">
-    <b>BK ARENA</b>
-    <div class="load-bar"><i id="load-fill"></i></div>
-    <p>Building the arena <span id="load-pct">0%</span></p>
-  </div>
-  <script>
-    // shown at once, before anything heavy has arrived; the page code calls this as files load
-    window.__loading = function (f) {
-      var pct = Math.round(Math.min(1, f) * 100);
-      document.getElementById('load-fill').style.width = pct + '%'; document.getElementById('load-pct').textContent = pct + '%';
-      if (f >= 1) { var el = document.getElementById('loader'); el.classList.add('done'); setTimeout(function () { el.remove(); }, 600); }
-    };
-  </script>
-  <canvas id="c"></canvas>
-
-  <header class="top">
-    <div class="brand">
-      <span class="flag"><i></i><i></i><i></i></span>
-      <div><b>BK ARENA</b><small><span id="event-name"></span> · <span id="event-date"></span></small></div>
-    </div>
-    <div class="right">
-      <nav class="switch"><a href="/tour">Explore</a><a class="on" href="/">Tickets</a></nav>
-      <ul class="legend">
-        <li><i id="lg-free" style="background:#1f9d55"></i>Available</li>
-        <li><i id="lg-pick" style="background:#fad201"></i>Your pick</li>
-        <li><i id="lg-hold" style="background:#00a1de"></i>On hold</li>
-        <li><i style="background:#5a6068"></i>Taken</li>
-      </ul>
-    </div>
-  </header>
-
-  <section id="hero">
-    <p class="kicker">Kigali · Rwanda</p>
-    <h1>BK Arena</h1>
-    <p id="hero-event"></p>
-    <div class="ways"><button id="enter">Find your seat</button><a href="/tour">Explore the complex</a></div>
-    <p class="sub">Step inside, pick a section, sit down and see the view before you buy. Or fly over the whole sports complex and walk around it.</p>
-  </section>
-
-  <nav id="crumbs" hidden></nav>
-  <aside id="panel" hidden></aside>
-  <div id="ticket" hidden></div>
-  <div id="dock">
-    <div id="confirm" hidden></div>
-    <button id="back" data-d="0" hidden>View whole arena</button>
-    <button id="showticket" data-act="show" hidden>Show ticket</button>
-    <button id="basket" data-act="basket" hidden></button>
-    <p id="hint"></p>
-  </div>
-  <div id="tip" hidden></div>
-  <div id="toast" hidden></div>
-
-  <script type="module" src="/src/main.js"></script>
+<body>
+  <p><a href="/tour.html">Explore the Kigali Sports Complex</a></p>
 </body>
 </html>
