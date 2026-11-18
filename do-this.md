@@ -51,5 +51,4 @@ Keep the two original repositories separate for now:
 - `slop-kgl`: source of gameplay.
 
 Once the environment is clean, we'll study the Slop-KGL gameplay architecture and port its mechanics into the BK Arena project.
-
 **The goal is not to merge two repositories blindly. It's to transfer the gameplay systems into the environment while preserving what makes each project good.**
