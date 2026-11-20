@@ -255,7 +255,16 @@ progress(0.97);
 let mode = 'walk', tween = null, menu = Boolean($('menu'));
 const walk = { yaw: 0, pitch: 0, goal: null, look: null };
 // keyboard and game controller input
-const input = { keys: new Set(), padL: new THREE.Vector2(), padR: new THREE.Vector2(), run: false, padRun: false };
+const input = { keys: new Set(), touchKeys: new Set(), padL: new THREE.Vector2(), padR: new THREE.Vector2(), run: false, padRun: false };
+const hasInputKey = (key) => input.keys.has(key) || input.touchKeys.has(key);
+const movementButtons = [...document.querySelectorAll('#move-controls [data-move]')];
+function clearTouchMovement() {
+  input.touchKeys.clear();
+  movementButtons.forEach((button) => {
+    button.classList.remove('on');
+    button.setAttribute('aria-pressed', 'false');
+  });
+}
 const EYE = 1.7, HOME = new THREE.Vector2(-110, 190);
 // Zaria Court's north and east sides stand 4.5 m above the court: steps, bleachers and grass banks lead up to them.
 // Numbers are in the model's own metres and must match blender/py/120_zaria.py (OX, OY, the plateau outline, the steps).
@@ -298,7 +307,7 @@ const syncWalk = () => { const e = new THREE.Euler().setFromQuaternion(camera.qu
 let hintTimer = 0;
 function hint(text) { const h = $('hint'); h.textContent = text; h.classList.remove('gone'); clearTimeout(hintTimer); hintTimer = setTimeout(() => h.classList.add('gone'), 9000); }
 function setMode(m) {
-  mode = m; document.body.dataset.mode = m; input.run = false; $('a-run').classList.remove('on'); $('places').hidden = true;
+  mode = m; document.body.dataset.mode = m; input.run = false; clearTouchMovement(); $('a-run').classList.remove('on'); $('places').hidden = true;
   $('drive-txt').textContent = m === 'car' ? 'Exit' : 'Drive';
   hint(m === 'car' ? 'WASD drives, mouse looks, V exits'
     : 'WASD walks · up/down move · left/right turn · mouse looks · walk into the gold coins');
@@ -332,9 +341,9 @@ function exitCar() {
 function drivePlayer(dt) {
   const keys = input.keys;
   const throttle = Math.max(-1, Math.min(1,
-    Number(keys.has('w') || keys.has('arrowup')) - Number(keys.has('s') || keys.has('arrowdown')) + input.padL.y));
+    Number(hasInputKey('w') || keys.has('arrowup')) - Number(hasInputKey('s') || keys.has('arrowdown')) + input.padL.y));
   const steer = Math.max(-1, Math.min(1,
-    Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft')) + input.padL.x));
+    Number(hasInputKey('d') || keys.has('arrowright')) - Number(hasInputKey('a') || keys.has('arrowleft')) + input.padL.x));
   if (throttle) car.speed = Math.max(-8, Math.min(25, car.speed + throttle * 18 * dt));
   else car.speed *= Math.exp(-1.5 * dt);
   car.yaw -= steer * Math.sign(car.speed || 1) * 1.6 * Math.min(1, Math.max(0.2, Math.abs(car.speed) / 4)) * dt;
@@ -439,11 +448,29 @@ refreshPlaces(); score();
 $('a-run').onclick = () => { input.run = !input.run; $('a-run').classList.toggle('on', input.run); };
 $('a-go').onclick = () => { $('places').hidden = !$('places').hidden; };
 $('a-drive').onclick = () => { if (mode === 'car') exitCar(); else enterCar(); };
+movementButtons.forEach((button) => {
+  const release = () => {
+    input.touchKeys.delete(button.dataset.move);
+    button.classList.remove('on');
+    button.setAttribute('aria-pressed', 'false');
+  };
+  button.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    input.touchKeys.add(button.dataset.move);
+    button.classList.add('on');
+    button.setAttribute('aria-pressed', 'true');
+    button.setPointerCapture(event.pointerId);
+  });
+  button.addEventListener('pointerup', release);
+  button.addEventListener('pointercancel', release);
+  button.addEventListener('lostpointercapture', release);
+});
 const gameMenuOverlay = $('game-menu-overlay'), gameMenuFrame = $('game-menu-frame');
 function setGameMenuOpen(open) {
   gameMenuOverlay.hidden = !open;
   input.keys.clear();
   input.run = false;
+  clearTouchMovement();
   $('a-run').classList.remove('on');
   if (open) gameMenuFrame.contentWindow.focus();
   else canvas.focus({ preventScroll: true });
@@ -483,7 +510,7 @@ addEventListener('keydown', (e) => {
   if (k === 'm') $('places').hidden = !$('places').hidden;
 });
 addEventListener('keyup', (e) => input.keys.delete(e.key.toLowerCase()));
-addEventListener('blur', () => input.keys.clear());
+addEventListener('blur', () => { input.keys.clear(); clearTouchMovement(); });
 // a game controller, if one is plugged in: left stick moves, right stick looks, A = action, B = run, X = places
 const padWas = [];
 function pollPad() {
@@ -498,7 +525,7 @@ function pollPad() {
 const mv = new THREE.Vector2(), lk = new THREE.Vector2();
 function readInput() {
   const k = input.keys;
-  mv.set((k.has('d') ? 1 : 0) - (k.has('a') ? 1 : 0), (k.has('w') || k.has('arrowup') ? 1 : 0) - (k.has('s') || k.has('arrowdown') ? 1 : 0)).add(input.padL);
+  mv.set((hasInputKey('d') ? 1 : 0) - (hasInputKey('a') ? 1 : 0), (hasInputKey('w') || k.has('arrowup') ? 1 : 0) - (hasInputKey('s') || k.has('arrowdown') ? 1 : 0)).add(input.padL);
   if (mv.lengthSq() > 1) mv.normalize();
   lk.set((k.has('arrowright') ? 1 : 0) - (k.has('arrowleft') ? 1 : 0), 0).add(input.padR);
 }
@@ -535,7 +562,9 @@ function stepWalk(dt) {
 // ---------------------------------------------------------------- run
 function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
-const spawn = local(VENUES[0], 0, 104), target = local(VENUES[0], 0, 0); camera.position.set(spawn[0], EYE + heightAt(spawn[0], spawn[1]), spawn[1]); camera.lookAt(target[0], 8, target[1]); syncWalk(); setMode('walk');
+const startPose = groundPose(VENUES[2]);
+camera.position.set(startPose.pos.x, EYE + heightAt(startPose.pos.x, startPose.pos.z), startPose.pos.z);
+camera.lookAt(startPose.look); syncWalk(); setMode('walk');
 if (location.hash === '#explore') startGame();
 let last = performance.now(), slow = 0;
 const focus = new THREE.Vector3();

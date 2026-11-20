@@ -185,7 +185,7 @@ body.game-menu--overlay {
   justify-content: space-between;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 767px) {
   .game-grid {
     grid-template-columns: minmax(0, 400px);
   }

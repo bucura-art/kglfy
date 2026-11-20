@@ -30,21 +30,8 @@
             <tr><th scope="row">OS</th><td data-spec-os>Detecting…</td></tr>
             <tr><th scope="row">Browser</th><td data-spec-browser>Detecting…</td></tr>
             <tr><th scope="row">Device</th><td data-spec-device>Detecting…</td></tr>
-            <tr><th scope="row">Mood</th><td data-spec-mood>Unknown…</td></tr>
-            
           </tbody>
         </table>
-        <p class="landing-status landing-status--warning">
-          <svg class="landing-icon landing-icon--warning" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-            <circle cx="24" cy="24" r="17" />
-            <path d="m17 17 14 14M31 17 17 31" />
-          </svg>
-          <svg class="landing-icon landing-icon--success" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-            <circle cx="24" cy="24" r="17" />
-            <path d="m16 24 5.5 5.5L32.5 18" />
-          </svg>
-          <span data-play-status aria-live="polite">Checking device…</span>
-        </p>
       </section>
 
       <section class="landing-showcase" aria-labelledby="showcase-heading">
@@ -55,7 +42,7 @@
           <div>
             <h2 id="showcase-heading">Let's go</h2>
           </div>
-          <button class="landing-play" type="button" data-play-cta disabled>
+          <button class="landing-play" type="button" data-play-cta>
             <span>Play</span>
             <span class="landing-play__arrow" aria-hidden="true">→</span>
           </button>
@@ -132,24 +119,19 @@
         };
       }
 
-      const phoneUserAgent =
-        /iPhone|iPod|Android.*Mobile|Windows Phone|BlackBerry|IEMobile|Opera Mini/i;
+      const mobileOrTabletUserAgent =
+        /iPhone|iPad|iPod|Android|Windows Phone|BlackBerry|IEMobile|Opera Mini/i;
       const narrowViewport = window.matchMedia("(max-width: 767px)");
       const deviceSpecs = getDeviceSpecs(navigator.userAgent || "");
 
       function updateDeviceLayout() {
-        const isPhone =
-          phoneUserAgent.test(navigator.userAgent) || narrowViewport.matches;
-        document.documentElement.classList.toggle("is-phone", isPhone);
-        const status = document.querySelector(".landing-status");
-        status.classList.toggle("landing-status--warning", isPhone);
-        status.classList.toggle("landing-status--success", !isPhone);
-        status.querySelector("[data-play-status]").textContent = isPhone
-          ? "Laptop required"
-          : "Ready to play";
-        document.querySelector("[data-play-cta]").disabled = isPhone;
+        const isPhoneOrTablet =
+          mobileOrTabletUserAgent.test(navigator.userAgent) ||
+          narrowViewport.matches;
         document.querySelectorAll("[data-spec-device]").forEach((element) => {
-          element.textContent = isPhone ? "Phone / Tablet" : "Laptop / Desktop";
+          element.textContent = isPhoneOrTablet
+            ? "Phone / Tablet"
+            : "Laptop / Desktop";
         });
         document.querySelectorAll("[data-spec-browser]").forEach((element) => {
           element.textContent = deviceSpecs.browser;

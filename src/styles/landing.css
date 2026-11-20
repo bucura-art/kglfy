@@ -103,26 +103,6 @@
   box-shadow: 0 0 10px rgba(94, 224, 143, 0.7);
 }
 
-.landing-icon {
-  display: block;
-  width: 48px;
-  height: 48px;
-  margin: 20px 0 0;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2.5;
-}
-
-.landing-icon--warning {
-  color: #ff626b;
-}
-
-.landing-icon--success {
-  color: #5ee08f;
-}
-
 .device-specs {
   width: min(100%, 360px);
   margin-top: 30px;
@@ -150,37 +130,6 @@
   font-weight: 600;
   color: rgba(246, 245, 242, 0.52);
   overflow-wrap: anywhere;
-}
-
-.landing-status {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 22px 0 0;
-  font-size: clamp(16px, 2.4vw, 20px);
-  font-weight: 650;
-  line-height: 1.4;
-}
-
-.landing-status [data-play-status] {
-  color: #f6f5f2;
-  font-size: 15px;
-  font-weight: 550;
-}
-
-.landing-status .landing-icon {
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
-  margin: 0;
-}
-
-.landing-status--warning {
-  color: #f6f5f2;
-}
-
-.landing-status--success {
-  color: #f6f5f2;
 }
 
 .landing-description {
@@ -281,13 +230,6 @@
   }
 }
 
-.landing-play:disabled {
-  border-color: rgba(255, 194, 26, 0.4);
-  background: rgba(255, 194, 26, 0.4);
-  color: rgba(23, 20, 10, 0.72);
-  cursor: not-allowed;
-}
-
 .landing-play:focus-visible {
   outline: 2px solid #f6f5f2;
   outline-offset: 4px;
@@ -381,10 +323,6 @@
     margin-right: auto;
     margin-left: auto;
   }
-
-  .landing-status {
-    justify-content: center;
-  }
 }
 
 @media (min-width: 1200px) {
@@ -417,10 +355,6 @@
     padding: 7px 0;
   }
 
-  .landing-status {
-    margin-top: 14px;
-  }
-
   .landing-showcase__content {
     padding-top: 16px;
   }
@@ -429,11 +363,6 @@
     padding-top: 12px;
     font-size: 12px;
   }
-}
-
-.landing-status--warning .landing-icon--success,
-.landing-status--success .landing-icon--warning {
-  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

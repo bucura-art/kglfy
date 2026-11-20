@@ -29,9 +29,15 @@
     <div id="hud-title" class="glass">KGL /tour</div>
   </div>
 
-  <div id="stats" class="glass">
-    <span title="Places discovered"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg><b id="n-places">0</b>/5</span>
-    <span title="Coins found"><i class="coin"></i><b id="n-coins">0</b>/15</span>
+  <div id="hud-goals" role="group" aria-label="Goals">
+    <div id="stats" class="glass">
+      <span title="Places discovered"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg><b id="n-places">0</b>/5</span>
+      <span title="Coins found"><i class="coin"></i><b id="n-coins">0</b>/15</span>
+    </div>
+    <aside id="todo" class="glass" aria-labelledby="todo-title">
+      <h2 id="todo-title">TODO</h2>
+      <p>Find all 15 coins</p>
+    </aside>
   </div>
   <canvas id="map" class="glass" width="264" height="264"></canvas>
 
@@ -42,6 +48,14 @@
 
   <div id="game-menu-overlay" role="dialog" aria-modal="true" aria-label="Game menu" hidden>
     <iframe id="game-menu-frame" title="Game menu" src="/src/shared/gmenu.html?overlay=1"></iframe>
+  </div>
+
+  <!-- movement controls -->
+  <div id="move-controls" role="group" aria-label="Movement controls">
+    <button id="move-forward" class="move-control glass" type="button" data-move="w" aria-label="Move forward" aria-pressed="false">↑</button>
+    <button id="move-left" class="move-control glass" type="button" data-move="a" aria-label="Move left" aria-pressed="false">←</button>
+    <button id="move-right" class="move-control glass" type="button" data-move="d" aria-label="Move right" aria-pressed="false">→</button>
+    <button id="move-backward" class="move-control glass" type="button" data-move="s" aria-label="Move backward" aria-pressed="false">↓</button>
   </div>
 
   <!-- game controls -->

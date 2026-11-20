@@ -54,6 +54,9 @@ body:not([data-menu]) #menu { opacity: 0; pointer-events: none; }
 #stats { position: fixed; right: max(12px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); z-index: 5; display: flex; gap: 12px; padding: 8px 14px; border-radius: 16px; font-size: 13px; font-variant-numeric: tabular-nums; }
 #stats span { display: flex; align-items: center; gap: 5px; } #stats b { font-weight: 700; }
 #stats svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
+#todo { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 50px); right: max(12px, env(safe-area-inset-right)); z-index: 5; width: max-content; max-width: calc(100vw - 24px); padding: 8px 12px; border-radius: 16px; background: #fff; color: #14181c; -webkit-backdrop-filter: none; backdrop-filter: none; }
+#todo h2 { margin-bottom: 4px; color: rgba(20, 24, 28, 0.58); font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+#todo p { font-size: 13px; font-weight: 600; line-height: 1.2; }
 .coin { width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6b0, #fad201 55%, #b98a00); }
 #map { position: fixed; left: max(12px, env(safe-area-inset-left)); bottom: max(12px, env(safe-area-inset-bottom)); z-index: 5; width: 132px; height: 132px; border-radius: 50%; }
 
@@ -70,25 +73,37 @@ body:not([data-menu]) #menu { opacity: 0; pointer-events: none; }
 #hint.gone { opacity: 0; }
 
 /* ---- sticks and buttons */
-#acts { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 6; display: flex; align-items: flex-end; gap: 8px; }
+#acts { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 6; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+#move-controls { display: none; position: fixed; left: calc(50% + 39px); bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 6; grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(3, 46px); gap: 4px; touch-action: none; }
+.move-control { display: grid; width: 46px; height: 46px; place-items: center; padding: 0; border: 1px solid #ffffff50; border-radius: 14px; color: #fff; font-size: 24px; line-height: 1; cursor: pointer; }
+.move-control.on { background: #fff; color: #14181c; }
+#move-forward { grid-area: 1 / 2; }
+#move-left { grid-area: 2 / 1; }
+#move-right { grid-area: 2 / 3; }
+#move-backward { grid-area: 3 / 2; }
 .act { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; align-content: center; gap: 0; padding: 0; transition: transform .1s; }
 .act small { font-size: 9.5px; font-weight: 500; margin-top: -1px; }
 .act svg { width: 17px; height: 17px; }
 .act:active { transform: scale(.93); }
 .act.on { background: #fff; color: #14181c; -webkit-backdrop-filter: none; backdrop-filter: none; }
 body[data-mode="car"] #a-run { display: none; }
-body[data-menu] #acts, body[data-menu] #stats, body[data-menu] #map, body[data-menu] #hint, body[data-menu] .bar, body[data-menu] #prompt, body[data-menu] #hud-title { opacity: 0; pointer-events: none; }
-#acts, #stats, #map, #hud-title, .bar { transition: opacity .45s; }
+body[data-menu] #acts, body[data-menu] #move-controls, body[data-menu] #stats, body[data-menu] #todo, body[data-menu] #map, body[data-menu] #hint, body[data-menu] .bar, body[data-menu] #prompt, body[data-menu] #hud-title { opacity: 0; pointer-events: none; }
+#acts, #stats, #todo, #map, #hud-title, .bar { transition: opacity .45s; }
+
+@media (hover: none) and (pointer: coarse) {
+  #move-controls { display: grid; }
+}
 
 @media (max-width: 720px) {
   .brand small, .brand b { display: none; }
   #map { width: 96px; height: 96px; }
   #hint { display: none; }
   #acts { bottom: max(16px, env(safe-area-inset-bottom)); gap: 6px; }
+  #move-controls { left: calc(50% + 23px); }
   .act { width: 46px; height: 46px; }
   #places { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 180px); }
   #prompt { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 190px); font-size: 13px; }
 }
 @media (max-height: 520px) { #map { width: 84px; height: 84px; } }
-@media (max-width: 720px) { #toast { top: calc(max(10px, env(safe-area-inset-top)) + 96px); } }
+@media (max-width: 720px) { #toast { top: calc(max(10px, env(safe-area-inset-top)) + 112px); } }
 #map { corner-shape: round; }
