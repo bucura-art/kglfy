@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>Kigali Tour</title>
+  <link rel="stylesheet" href="/src/styles/glass.css">
+  <link rel="stylesheet" href="/src/styles/tour-game.css">
+  <link rel="stylesheet" href="/src/styles/tour-GameHUD.css">
+  <link rel="stylesheet" href="/src/styles/menu-overlay.css">
+</head>
+<body data-mode="loading">
+  <div id="loader">
+    <b>KGL — Tour</b>
+    <div class="load-bar"><i id="load-fill"></i></div>
+    <p>Loading... <span id="load-pct">0%</span></p>
+  </div>
+  <script>
+    window.__loading = function (f) {
+      var pct = Math.round(Math.min(1, f) * 100);
+      document.getElementById('load-fill').style.width = pct + '%'; document.getElementById('load-pct').textContent = pct + '%';
+      if (f >= 1) { var el = document.getElementById('loader'); el.classList.add('done'); setTimeout(function () { el.remove(); }, 600); }
+    };
+  </script>
+  <canvas id="c" tabindex="-1"></canvas>
+
+  <div id="hud-brand">
+    <img src="/brand/kgl-series-logo.png" alt="">
+    <div id="hud-title" class="glass">KGL /tour</div>
+  </div>
+
+  <div id="stats" class="glass">
+    <span title="Places discovered"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg><b id="n-places">0</b>/5</span>
+    <span title="Coins found"><i class="coin"></i><b id="n-coins">0</b>/15</span>
+  </div>
+  <canvas id="map" class="glass" width="264" height="264"></canvas>
+
+  <nav id="places" class="glass" hidden></nav>
+  <button id="prompt" class="glass" hidden></button>
+  <div id="toast" class="glass" hidden></div>
+  <p id="hint" class="glass"></p>
+
+  <div id="game-menu-overlay" role="dialog" aria-modal="true" aria-label="Game menu" hidden>
+    <iframe id="game-menu-frame" title="Game menu" src="/shared/gmenu.html?overlay=1"></iframe>
+  </div>
+
+  <!-- game controls -->
+  <div id="acts">
+    <button id="a-go" class="act glass" aria-label="Travel to a place"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg><small>Travel</small></button>
+    <button id="a-drive" class="act glass" aria-label="Enter or exit driving mode"><svg viewBox="0 0 24 24"><path d="M3 13l2-6h14l2 6v6h-3v-2H6v2H3z"/><path d="M5 13h14M7 16h.01M17 16h.01"/></svg><small id="drive-txt">Drive</small></button>
+    <button id="a-run" class="act glass" aria-label="Run"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><small>Run</small></button>
+  </div>
+
+  <script type="module" src="/src/gameplay/tour/tourGamePlay.js"></script>
+</body>
+</html>

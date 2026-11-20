@@ -4,8 +4,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { preload, texture, dress, dressModel, setEnvironment, reflect } from './textures.js';
-import { addAmahoroSeats } from './tour-seats.js';
+import { preload, texture, dress, dressModel, setEnvironment, reflect } from '../../../scripts/textures.js';
+import { addAmahoroSeats } from '../../../scripts/stadium-seats.js';
 
 const $ = (id) => document.getElementById(id);
 const V = '?v=' + __BUILD__;
@@ -20,15 +20,15 @@ const progress = (f) => { if (window.__loading) window.__loading(f); };
 const local = (v, x, north) => { const c = Math.cos(v.rot), s = Math.sin(v.rot); return [v.pos[0] + x * c - north * s, v.pos[1] - x * s - north * c]; };
 const VENUES = [
   { id: 'bk', name: 'BK Arena', kind: 'Indoor arena · 10,000 seats', file: 'exterior.glb', pos: [0, 0], rot: -135 * deg, top: 34,
-    text: 'The round arena with the patterned band under its cream roof. Home of the Basketball Africa League finals, concerts and conferences.' },
+    text: 'The round arena with the patterned band under its cream roof. Home of the Basketball Africa League finals, concerts and conferences.', walk: [0, 104, 0, 0], reach: 135 },
   { id: 'amahoro', name: 'Amahoro Stadium', kind: 'National stadium · 45,000 seats', file: 'amahoro.glb', pos: [-135.3, 205.2], rot: 9.9 * deg, top: 48,
-    text: 'Rebuilt and reopened in 2024: a full roof of scalloped vaults over a bowl wrapped in a leaning screen of imigongo patterns.' },
+    text: 'Rebuilt and reopened in 2024: a full roof of scalloped vaults over a bowl wrapped in a leaning screen of imigongo patterns.', walk: [-170, 0, 0, 0], reach: 185, inside: { label: 'Stand on the pitch', at: [44, -70], look: [-10, 30] } },
   { id: 'zaria', name: 'Zaria Court', kind: 'Sports, hotel and events', file: 'zaria.glb', pos: [-410.7, 463.3], rot: 23 * deg, top: 26,
-    text: 'Brick and timber around a covered public court, with a hotel, pool terrace, cafes and five-a-side pitches. Opened in 2025.' },
+    text: 'Brick and timber around a covered public court, with a hotel, pool terrace, cafes and five-a-side pitches. Opened in 2025.', walk: [-24, 10, 15, 10], reach: 95 },
   { id: 'petit', name: 'Petit Stade', kind: 'Indoor halls', file: 'petitstade.glb', pos: [-238.6, 380.9], rot: 5.8 * deg, top: 22,
-    text: 'Two halls for basketball, volleyball and para sport beside the stadium, wearing the same patterned screen.' },
+    text: 'Two halls for basketball, volleyball and para sport beside the stadium, wearing the same patterned screen.', walk: [26, 58, 26, 0], reach: 85 },
   { id: 'courts', name: 'Outdoor courts', kind: 'Courts and training track', pos: [52, 175], rot: 0, top: 14,
-    text: 'Open basketball and tennis courts, and the training pitch with its running track, between the arena and the stadium.' },
+    text: 'Open basketball and tennis courts, and the training pitch with its running track, between the arena and the stadium.', walk: [0, 75, 0, 40], reach: 90 },
 ];
 
 // ---------------------------------------------------------------- scene
@@ -187,6 +187,7 @@ const site = await fetch('/tour/site.json' + V).then((r) => r.json()).catch(() =
 const o3 = new THREE.Object3D(), col = new THREE.Color();
 const PAINT = [0xf2f2f2, 0xd9d9d6, 0x1b1b1d, 0x8b8f96, 0x8f1a1a, 0x1d3f7a, 0xc9c2b2, 0x2b2d31];
 let drivers = [];
+const car = { position: new THREE.Vector3(), yaw: 0, speed: 0, root: null };
 try {
   const g = await loader.loadAsync('/models/world.glb' + V), geo = (n) => { const o = g.scene.getObjectByName(n); return o && o.geometry; };
   const leaf = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: THREE.DoubleSide });
@@ -217,6 +218,17 @@ try {
     drivers.push({ f, slot, path, s: rnd() * path.len, dir: path.oneway || rnd() < 0.5 ? 1 : -1, speed: 8 + rnd() * 6 });
   }
   fleets.forEach((f) => f.parts.forEach((p) => { p.instanceMatrix.needsUpdate = true; if (p.instanceColor) p.instanceColor.needsUpdate = true; }));
+  car.root = new THREE.Group();
+  fleets[0].parts.forEach((part, i) => {
+    const material = part.material.clone();
+    if (i === 0) material.color.setHex(PAINT[0]);
+    const mesh = new THREE.Mesh(part.geometry, material);
+    mesh.castShadow = true;
+    mesh.frustumCulled = false;
+    car.root.add(mesh);
+  });
+  car.root.visible = false;
+  scene.add(car.root);
 } catch (err) { console.warn('trees and cars not loaded:', err.message); }
 function drive(dt) {
   for (const d of drivers) {
@@ -227,6 +239,7 @@ function drive(dt) {
     d.f.put(d.slot, a.x + (b.x - a.x) * k - dz / l * off, a.y + (b.y - a.y) * k + dx / l * off, Math.atan2(dx, dz));
   }
   const seen = new Set(drivers.map((d) => d.f)); seen.forEach((f) => f.parts.forEach((p) => (p.instanceMatrix.needsUpdate = true)));
+  if (mode === 'car') drivePlayer(dt);
 }
 { // street lamps
   const n = site.lamps.length; if (n) {
@@ -239,7 +252,7 @@ function drive(dt) {
 progress(0.97);
 
 // ---------------------------------------------------------------- moving about
-let mode = 'walk', tween = null, menu = true;
+let mode = 'walk', tween = null, menu = Boolean($('menu'));
 const walk = { yaw: 0, pitch: 0, goal: null, look: null };
 // keyboard and game controller input
 const input = { keys: new Set(), padL: new THREE.Vector2(), padR: new THREE.Vector2(), run: false, padRun: false };
@@ -286,8 +299,58 @@ let hintTimer = 0;
 function hint(text) { const h = $('hint'); h.textContent = text; h.classList.remove('gone'); clearTimeout(hintTimer); hintTimer = setTimeout(() => h.classList.add('gone'), 9000); }
 function setMode(m) {
   mode = m; document.body.dataset.mode = m; input.run = false; $('a-run').classList.remove('on'); $('places').hidden = true;
+  $('drive-txt').textContent = m === 'car' ? 'Exit' : 'Drive';
   hint(m === 'car' ? 'WASD drives, mouse looks, V exits'
     : 'WASD walks · up/down move · left/right turn · mouse looks · walk into the gold coins');
+}
+function followCar() {
+  const forward = new THREE.Vector3(-Math.sin(car.yaw), 0, -Math.cos(car.yaw));
+  camera.position.copy(car.position).addScaledVector(forward, -8);
+  camera.position.y += 4;
+  camera.lookAt(car.position.clone().addScaledVector(forward, 8).add(new THREE.Vector3(0, 1.5, 0)));
+}
+function enterCar() {
+  if (!car.root) {
+    console.error('Driving unavailable: the car model did not load.');
+    return;
+  }
+  car.position.set(camera.position.x, heightAt(camera.position.x, camera.position.z), camera.position.z);
+  car.yaw = walk.yaw;
+  car.speed = 0;
+  car.root.visible = true;
+  setMode('car');
+  followCar();
+}
+function exitCar() {
+  if (mode !== 'car') return;
+  setMode('walk');
+  camera.position.set(car.position.x, EYE + heightAt(car.position.x, car.position.z), car.position.z);
+  walk.yaw = car.yaw;
+  walk.pitch = 0;
+  camera.rotation.set(walk.pitch, walk.yaw, 0, 'YXZ');
+}
+function drivePlayer(dt) {
+  const keys = input.keys;
+  const throttle = Math.max(-1, Math.min(1,
+    Number(keys.has('w') || keys.has('arrowup')) - Number(keys.has('s') || keys.has('arrowdown')) + input.padL.y));
+  const steer = Math.max(-1, Math.min(1,
+    Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft')) + input.padL.x));
+  if (throttle) car.speed = Math.max(-8, Math.min(25, car.speed + throttle * 18 * dt));
+  else car.speed *= Math.exp(-1.5 * dt);
+  car.yaw -= steer * Math.sign(car.speed || 1) * 1.6 * Math.min(1, Math.max(0.2, Math.abs(car.speed) / 4)) * dt;
+  const next = car.position.clone();
+  next.x -= Math.sin(car.yaw) * car.speed * dt;
+  next.z -= Math.cos(car.yaw) * car.speed * dt;
+  tether(next);
+  if (blocked(next.x, next.z)) car.speed = 0;
+  else {
+    car.position.x = next.x;
+    car.position.z = next.z;
+  }
+  car.position.y = heightAt(car.position.x, car.position.z);
+  car.root.position.copy(car.position);
+  car.root.rotation.y = car.yaw + Math.PI;
+  followCar();
 }
 function moveToGround(x, z, lookAt) {
   const pos = new THREE.Vector3(x, EYE + heightAt(x, z), z);
@@ -375,8 +438,21 @@ refreshPlaces(); score();
 // ---------------------------------------------------------------- controls: keys, buttons, controller, and mouse
 $('a-run').onclick = () => { input.run = !input.run; $('a-run').classList.toggle('on', input.run); };
 $('a-go').onclick = () => { $('places').hidden = !$('places').hidden; };
+$('a-drive').onclick = () => { if (mode === 'car') exitCar(); else enterCar(); };
+const gameMenuOverlay = $('game-menu-overlay'), gameMenuFrame = $('game-menu-frame');
+function setGameMenuOpen(open) {
+  gameMenuOverlay.hidden = !open;
+  input.keys.clear();
+  input.run = false;
+  $('a-run').classList.remove('on');
+  if (open) gameMenuFrame.contentWindow.focus();
+  else canvas.focus({ preventScroll: true });
+}
+addEventListener('message', (e) => {
+  if (e.origin === location.origin && e.source === gameMenuFrame.contentWindow && e.data?.type === 'kgl-menu-close') setGameMenuOpen(false);
+});
 function startGame() { menu = false; delete document.body.dataset.menu; setMode(mode); try { history.replaceState(null, '', '#explore'); } catch { /* no history: fine */ } }
-$('start').onclick = startGame;
+if ($('start')) $('start').onclick = startGame;
 
 // pointing at the ground
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), floor = new THREE.Plane(UP, 0), hit = new THREE.Vector3();
@@ -397,7 +473,10 @@ canvas.addEventListener('pointerup', (e) => {
   const g = groundAt(e); if (g && g.distanceTo(camera.position) < 260 && heightAt(camera.position.x, camera.position.z) < 0.5) walk.goal = new THREE.Vector2(g.x, g.z);
 });
 addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || e.repeat) return; const k = e.key.toLowerCase(); input.keys.add(k);
+  if (e.repeat) return;
+  if (e.key === 'Escape') { e.preventDefault(); setGameMenuOpen(gameMenuOverlay.hidden); return; }
+  if (e.target.tagName === 'INPUT') return; const k = e.key.toLowerCase(); input.keys.add(k);
+  if (mode === 'car' && k === 'v') { exitCar(); return; }
   if (menu) { if (k === 'enter' || k === ' ') startGame(); return; }
   if (e.key.startsWith('Arrow') || k === ' ') e.preventDefault();
   if (k === 'e' || k === 'enter') offer && offer.run();

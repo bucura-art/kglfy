@@ -1,4 +1,4 @@
-# Kigali Sports Complex
+# KGL SERIES
 
 An interactive 3D exploration of Remera, Kigali. Fly over the BK Arena, Amahoro Stadium, Zaria Court, Petit Stade and nearby outdoor courts, or drive and walk around the grounds.
 
@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. The root page opens the explorer; `/tour` is also available.
+Open the local URL printed by Vite. The root page opens the explorer; `/index` is also available.
 
 ## Build
 

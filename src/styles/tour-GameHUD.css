@@ -1,0 +1,23 @@
+#hud-brand {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+#hud-title {
+  position: static;
+  text-align: center;
+}
+
+#hud-brand img {
+  display: block;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  transform: translateY(6px);
+}

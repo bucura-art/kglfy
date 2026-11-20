@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0a0b0d">
+    <title>KGL SERIES — Games</title>
+    <link rel="stylesheet" href="/src/styles/glass.css">
+    <link rel="stylesheet" href="/src/styles/gmenu.css">
+  </head>
+  <body class="game-menu">
+    <main class="game-menu__content">
+      <h1 class="game-menu__title">KGL SERIES</h1>
+      <section class="game-grid" aria-label="Games">
+        <article class="menu-card glass">
+          <h2>KGL — Tour</h2>
+          <img class="menu-logo" src="/brand/kgl-series-logo.png" alt="Kigali logo">
+          <div class="goals">
+            <div>
+              <div class="goal-value">
+                <svg class="pin-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-7.2 7-13a7 7 0 1 0-14 0c0 5.8 7 13 7 13zm0-9.5A3.5 3.5 0 1 1 12 5.5a3.5 3.5 0 0 1 0 7z"/></svg>
+                <b>5</b>
+              </div>
+              <span>Places</span>
+            </div>
+            <i class="goal-divider" aria-hidden="true"></i>
+            <div>
+              <div class="goal-value"><i class="coin" aria-hidden="true"></i><b>15</b></div>
+              <span>Coins</span>
+            </div>
+          </div>
+          <div class="menu-row">
+            <a class="btn primary" href="/tourGameHUD.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>
+              START
+            </a>
+          </div>
+        </article>
+
+        <article class="menu-card game-card--soon">
+          <h2>KGL — Race</h2>
+          <img class="menu-logo" src="/brand/kgl-series-logo.png" alt="Kigali logo">
+          <div class="goals">
+            <div>
+              <div class="goal-value">
+                <svg class="goal-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m6-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm7-3a4 4 0 0 1 0 7m5 6v-2a4 4 0 0 0-3-3.87"/></svg>
+                <b>5</b>
+              </div>
+              <span>Opps</span>
+            </div>
+            <i class="goal-divider" aria-hidden="true"></i>
+            <div>
+              <div class="goal-value">
+                <svg class="goal-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 3-5 18m13-18 5 18M12 3v3m0 4v3m0 4v4"/></svg>
+                <b>15</b>
+              </div>
+              <span>Roads</span>
+            </div>
+          </div>
+          <div class="menu-row">
+            <button class="btn" type="button" disabled>COMING SOON</button>
+          </div>
+        </article>
+      </section>
+    </main>
+    <script>
+      if (new URLSearchParams(location.search).has('overlay')) {
+        document.documentElement.classList.add('game-menu--overlay');
+        const closeMenu = () => window.parent.postMessage({ type: 'kgl-menu-close' }, location.origin);
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && !event.repeat) {
+            event.preventDefault();
+            closeMenu();
+          }
+        });
+        document.querySelector('.btn.primary').addEventListener('click', (event) => {
+          event.preventDefault();
+          closeMenu();
+        });
+      }
+    </script>
+  </body>
+</html>

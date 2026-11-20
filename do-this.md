@@ -5,7 +5,7 @@ We are combining two existing projects:
 **Environment (keep this as the foundation):**
 - Repository: `bucura-art/kglfy`
 - Branch: `livegame`
-- Main environment: `src/tour.js`
+- Main environment: `src/gameplay/tourGamePlay.js`
 - Entry point: `tour.html`
 - Environment assets: `public/models/` and `public/tour/site.json`
 

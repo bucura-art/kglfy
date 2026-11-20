@@ -2,7 +2,7 @@
 # roads with kerbs, pavements and markings, car parks with bays, pitches, courts, the training track, lawns, and every
 # mapped building with walls, windows and a roof. Writes public/models/city.glb and public/tour/site.json (trees, cars, lamps).
 # Run:  /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P blender/py/130_city.py
-# Site axes: x = east, y = up, z = south, origin at the centre of BK Arena. Textures are applied by material name in src/tour.js.
+# Site axes: x = east, y = up, z = south, origin at the centre of BK Arena. Textures are applied by material name in src/gameplay/tour/tourGamePlay.js
 import bpy, json, math, os, random
 import numpy as np
 from mathutils import Vector
@@ -13,7 +13,7 @@ S = json.load(open(ROOT + "/blender/site.json"))
 rng = random.Random(11)
 lin = lambda h: tuple(((((h >> s) & 255) / 255) ** 2.2) for s in (16, 8, 0))  # hex colour -> linear, as glTF wants
 
-# ---- where the hand-built venues stand (must match src/tour.js)
+# ---- where the hand-built venues stand (must match src/gameplay/tour/tourGamePlay.js)
 ARENA = (0.0, 0.0)
 STADIUM = next(s for s in S["stadiums"] if "Amahoro" in (s["name"] or ""))["pts"]
 ZARIA = {"c": (-410.7, 463.3), "ang": math.radians(-23.0), "half": (122.0, 50.0)}   # centre, direction of its long side, half sizes

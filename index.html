@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#0a0b0d" />
     <title>KGL SERIES — Tour</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./src/landing.css" />
+    <link rel="stylesheet" href="./src/styles/landing.css" />
   </head>
   <body class="landing-page">
     <main class="landing-content">
@@ -46,7 +46,7 @@
 
       <section class="landing-showcase" aria-labelledby="showcase-heading">
         <div class="landing-showcase__image">
-          <img src="./screenshot/kgl-aerial-shot.png" alt="Aerial view of Kigali's sports complex in the game" />
+          <img src="./brand/game-screenshot.png" alt="Aerial view of Kigali's sports complex in the game" />
         </div>
         <div class="landing-showcase__content">
           <div>
@@ -134,7 +134,7 @@
       updateDeviceLayout();
       narrowViewport.addEventListener("change", updateDeviceLayout);
       document.querySelector("[data-play-cta]").addEventListener("click", () => {
-        window.location.href = "./tour.html";
+        window.location.href = "./shared/gmenu.html";
       });
     </script>
   </body>
