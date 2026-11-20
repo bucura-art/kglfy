@@ -11,6 +11,7 @@
     <title>KGL SERIES</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./src/styles/landing.css" />
+    <link rel="stylesheet" href="./src/styles/menu-overlay.css" />
   </head>
   <body class="landing-page">
     <main class="landing-content">
@@ -26,9 +27,11 @@
         </p>
         <table class="device-specs" aria-label="Your device specifications">
           <tbody>
-            <tr><th scope="row">Device</th><td data-spec-device>Detecting…</td></tr>
-            <tr><th scope="row">Browser</th><td data-spec-browser>Detecting…</td></tr>
             <tr><th scope="row">OS</th><td data-spec-os>Detecting…</td></tr>
+            <tr><th scope="row">Browser</th><td data-spec-browser>Detecting…</td></tr>
+            <tr><th scope="row">Device</th><td data-spec-device>Detecting…</td></tr>
+            <tr><th scope="row">Mood</th><td data-spec-mood>Unknown…</td></tr>
+            
           </tbody>
         </table>
         <p class="landing-status landing-status--warning">
@@ -60,9 +63,34 @@
       </section>
 
       <footer class="landing-credits">
-        <p>Credits: The environment was 3D modeled by HimTesor1 with reference to openstreetmap data.</p>
+        <p>
+          Credits: The city simulation was 3D modeled by
+          <a href="https://tresoramizero.com" target="_blank" rel="noopener noreferrer">HimTesor1</a>
+          with reference to
+          <a href="https://www.openstreetmap.org" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>
+          data.
+        </p>
+        <p>
+          Some places and buildings are fictionalized for gameplay purposes. They may not appear as they appear IRL.
+        </p>
       </footer>
     </main>
+
+    <div
+      id="game-menu-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Game menu"
+      tabindex="-1"
+      hidden
+    >
+      <button class="game-menu-close" type="button" aria-label="Close game menu">×</button>
+      <iframe
+        id="game-menu-frame"
+        title="Game menu"
+        src="/src/shared/gmenu.html?overlay=1&launch=1"
+      ></iframe>
+    </div>
 
     <script>
       function getDeviceSpecs(userAgent) {
@@ -121,7 +149,7 @@
           : "Ready to play";
         document.querySelector("[data-play-cta]").disabled = isPhone;
         document.querySelectorAll("[data-spec-device]").forEach((element) => {
-          element.textContent = isPhone ? "Phone / tablet" : "Laptop / desktop";
+          element.textContent = isPhone ? "Phone / Tablet" : "Laptop / Desktop";
         });
         document.querySelectorAll("[data-spec-browser]").forEach((element) => {
           element.textContent = deviceSpecs.browser;
@@ -133,9 +161,46 @@
 
       updateDeviceLayout();
       narrowViewport.addEventListener("change", updateDeviceLayout);
-      document.querySelector("[data-play-cta]").addEventListener("click", () => {
-        window.location.href = "./shared/gmenu.html";
+      const playButton = document.querySelector("[data-play-cta]");
+      const gameMenuOverlay = document.querySelector("#game-menu-overlay");
+      const gameMenuFrame = document.querySelector("#game-menu-frame");
+      const closeMenuButton = document.querySelector(".game-menu-close");
+
+      function closeGameMenu() {
+        gameMenuOverlay.hidden = true;
+        document.body.classList.remove("game-menu-open");
+        playButton.focus();
+      }
+
+      playButton.addEventListener("click", () => {
+        gameMenuOverlay.hidden = false;
+        document.body.classList.add("game-menu-open");
+        closeMenuButton.focus();
+      });
+      closeMenuButton.addEventListener("click", closeGameMenu);
+      gameMenuOverlay.addEventListener("click", (event) => {
+        if (event.target === gameMenuOverlay) closeGameMenu();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (!gameMenuOverlay.hidden && event.key === "Escape" && !event.repeat) {
+          event.preventDefault();
+          closeGameMenu();
+        }
+      });
+      window.addEventListener("message", (event) => {
+        if (
+          event.origin !== window.location.origin ||
+          event.source !== gameMenuFrame.contentWindow
+        ) {
+          return;
+        }
+        if (event.data?.type === "kgl-menu-close") {
+          closeGameMenu();
+        } else if (event.data?.type === "kgl-menu-play") {
+          window.location.href = "/src/hud/tourGame.html";
+        }
       });
     </script>
+    <script type="module" src="/src/analytics.js"></script>
   </body>
 </html>

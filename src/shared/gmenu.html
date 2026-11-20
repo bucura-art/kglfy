@@ -30,7 +30,7 @@
             </div>
           </div>
           <div class="menu-row">
-            <a class="btn primary" href="/src/hud/tourGameHUD.html">
+            <a class="btn primary" href="/src/hud/tourGame.html">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>
               START
             </a>
@@ -67,6 +67,7 @@
       if (new URLSearchParams(location.search).has('overlay')) {
         document.documentElement.classList.add('game-menu--overlay');
         const closeMenu = () => window.parent.postMessage({ type: 'kgl-menu-close' }, location.origin);
+        const launchFromLanding = new URLSearchParams(location.search).has('launch');
         document.addEventListener('keydown', (event) => {
           if (event.key === 'Escape' && !event.repeat) {
             event.preventDefault();
@@ -75,7 +76,11 @@
         });
         document.querySelector('.btn.primary').addEventListener('click', (event) => {
           event.preventDefault();
-          closeMenu();
+          if (launchFromLanding) {
+            window.parent.postMessage({ type: 'kgl-menu-play' }, location.origin);
+          } else {
+            closeMenu();
+          }
         });
       }
     </script>
