@@ -1,12 +1,141 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="0; url=/tour.html">
-  <title>Kigali Sports Complex · Explore</title>
-</head>
-<body>
-  <p><a href="/tour.html">Explore the Kigali Sports Complex</a></p>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Explore Kigali, the realistic-street city simulation around Kigali sport complex."
+    />
+    <meta name="theme-color" content="#0a0b0d" />
+    <title>KGL SERIES — Tour</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./src/landing.css" />
+  </head>
+  <body class="landing-page">
+    <main class="landing-content">
+
+      <section
+        class="landing-message"
+        aria-labelledby="welcome-heading"
+      >
+        <h1 id="welcome-heading">Welcome</h1>
+        <p class="landing-visitors" aria-label="1 active visitor">
+          <span class="landing-visitors__dot" aria-hidden="true"></span>
+          <span>1 active visitor</span>
+        </p>
+        <table class="device-specs" aria-label="Your device specifications">
+          <tbody>
+            <tr><th scope="row">Device</th><td data-spec-device>Detecting…</td></tr>
+            <tr><th scope="row">Browser</th><td data-spec-browser>Detecting…</td></tr>
+            <tr><th scope="row">OS</th><td data-spec-os>Detecting…</td></tr>
+          </tbody>
+        </table>
+        <p class="landing-status landing-status--warning">
+          <svg class="landing-icon landing-icon--warning" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+            <circle cx="24" cy="24" r="17" />
+            <path d="m17 17 14 14M31 17 17 31" />
+          </svg>
+          <svg class="landing-icon landing-icon--success" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+            <circle cx="24" cy="24" r="17" />
+            <path d="m16 24 5.5 5.5L32.5 18" />
+          </svg>
+          <span data-play-status aria-live="polite">Checking device…</span>
+        </p>
+      </section>
+
+      <section class="landing-showcase" aria-labelledby="showcase-heading">
+        <div class="landing-showcase__image">
+          <img src="./screenshot/kgl-aerial-shot.png" alt="Aerial view of Kigali's sports complex in the game" />
+        </div>
+        <div class="landing-showcase__content">
+          <div>
+            <h2 id="showcase-heading">Let's go</h2>
+          </div>
+          <button class="landing-play" type="button" data-play-cta disabled>
+            <span>Play</span>
+            <span class="landing-play__arrow" aria-hidden="true">→</span>
+          </button>
+        </div>
+      </section>
+
+      <footer class="landing-credits">
+        <p>Credits: honours go here.</p>
+      </footer>
+    </main>
+
+    <script>
+      function getDeviceSpecs(userAgent) {
+        let browser = "";
+        if (/Edg(e|A|iOS)?\//i.test(userAgent)) {
+          browser = "Edge";
+        } else if (/OPR\/|OPiOS\//i.test(userAgent)) {
+          browser = "Opera";
+        } else if (/SamsungBrowser\//i.test(userAgent)) {
+          browser = "Samsung Internet";
+        } else if (/Firefox\/|FxiOS\//i.test(userAgent)) {
+          browser = "Firefox";
+        } else if (/CriOS\/|Chrome\//i.test(userAgent)) {
+          browser = "Chrome";
+        } else if (/Safari\//i.test(userAgent)) {
+          browser = "Safari";
+        } else if (/Chromium\//i.test(userAgent)) {
+          browser = "Chromium";
+        }
+
+        let operatingSystem = "";
+        if (/Windows NT/i.test(userAgent)) {
+          operatingSystem = "Windows";
+        } else if (/Android/i.test(userAgent)) {
+          operatingSystem = "Android";
+        } else if (/iPhone|iPad|iPod/i.test(userAgent)) {
+          operatingSystem = "iOS";
+        } else if (/Macintosh|Mac OS X/i.test(userAgent)) {
+          operatingSystem = "macOS";
+        } else if (/CrOS/i.test(userAgent)) {
+          operatingSystem = "ChromeOS";
+        } else if (/Linux/i.test(userAgent)) {
+          operatingSystem = "Linux";
+        }
+
+        return {
+          browser: browser || "Unknown browser",
+          operatingSystem: operatingSystem || "Unknown OS",
+        };
+      }
+
+      const phoneUserAgent =
+        /iPhone|iPod|Android.*Mobile|Windows Phone|BlackBerry|IEMobile|Opera Mini/i;
+      const narrowViewport = window.matchMedia("(max-width: 767px)");
+      const deviceSpecs = getDeviceSpecs(navigator.userAgent || "");
+
+      function updateDeviceLayout() {
+        const isPhone =
+          phoneUserAgent.test(navigator.userAgent) || narrowViewport.matches;
+        document.documentElement.classList.toggle("is-phone", isPhone);
+        const status = document.querySelector(".landing-status");
+        status.classList.toggle("landing-status--warning", isPhone);
+        status.classList.toggle("landing-status--success", !isPhone);
+        status.querySelector("[data-play-status]").textContent = isPhone
+          ? "Laptop required"
+          : "Ready to play";
+        document.querySelector("[data-play-cta]").disabled = isPhone;
+        document.querySelectorAll("[data-spec-device]").forEach((element) => {
+          element.textContent = isPhone ? "Phone / tablet" : "Laptop / desktop";
+        });
+        document.querySelectorAll("[data-spec-browser]").forEach((element) => {
+          element.textContent = deviceSpecs.browser;
+        });
+        document.querySelectorAll("[data-spec-os]").forEach((element) => {
+          element.textContent = deviceSpecs.operatingSystem;
+        });
+      }
+
+      updateDeviceLayout();
+      narrowViewport.addEventListener("change", updateDeviceLayout);
+      document.querySelector("[data-play-cta]").addEventListener("click", () => {
+        window.location.href = "./tour.html";
+      });
+    </script>
+  </body>
 </html>

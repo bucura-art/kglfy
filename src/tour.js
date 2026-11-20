@@ -1,10 +1,9 @@
 // A tour of the Kigali sports complex: BK Arena, Amahoro Stadium, Zaria Court, Petit Stade and the outdoor courts,
-// standing in the real street plan of Remera (from OpenStreetMap). Fly over it, or drop down and walk.
+// standing in the real street plan of Remera (from OpenStreetMap). Explore the grounds on foot.
 // Axes: x = east, y = up, z = south, origin at the centre of BK Arena. The district comes from blender/py/130_city.py.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { MapControls } from 'three/addons/controls/MapControls.js';
 import { preload, texture, dress, dressModel, setEnvironment, reflect } from './textures.js';
 import { addAmahoroSeats } from './tour-seats.js';
 
@@ -17,24 +16,19 @@ document.body.dataset.touch = coarse;
 const progress = (f) => { if (window.__loading) window.__loading(f); };
 
 // ---------------------------------------------------------------- the places
-// pos = where the model's own origin stands; rot = turn about the vertical; air/ground = where the camera goes
+// pos = where the model's own origin stands; rot = turn about the vertical; walk = camera approach and look point
 const local = (v, x, north) => { const c = Math.cos(v.rot), s = Math.sin(v.rot); return [v.pos[0] + x * c - north * s, v.pos[1] - x * s - north * c]; };
 const VENUES = [
   { id: 'bk', name: 'BK Arena', kind: 'Indoor arena · 10,000 seats', file: 'exterior.glb', pos: [0, 0], rot: -135 * deg, top: 34,
-    text: 'The round arena with the patterned band under its cream roof. Home of the Basketball Africa League finals, concerts and conferences.',
-    air: { dist: 250, az: -40, el: 30 }, walk: [0, 104, 0, 0], reach: 135 },
+    text: 'The round arena with the patterned band under its cream roof. Home of the Basketball Africa League finals, concerts and conferences.' },
   { id: 'amahoro', name: 'Amahoro Stadium', kind: 'National stadium · 45,000 seats', file: 'amahoro.glb', pos: [-135.3, 205.2], rot: 9.9 * deg, top: 48,
-    text: 'Rebuilt and reopened in 2024: a full roof of scalloped vaults over a bowl wrapped in a leaning screen of imigongo patterns.',
-    air: { dist: 430, az: -70, el: 34 }, walk: [-170, 0, 0, 0], reach: 185, inside: { label: 'Stand on the pitch', at: [44, -70], look: [-10, 30] } },
+    text: 'Rebuilt and reopened in 2024: a full roof of scalloped vaults over a bowl wrapped in a leaning screen of imigongo patterns.' },
   { id: 'zaria', name: 'Zaria Court', kind: 'Sports, hotel and events', file: 'zaria.glb', pos: [-410.7, 463.3], rot: 23 * deg, top: 26,
-    text: 'Brick and timber around a covered public court, with a hotel, pool terrace, cafes and five-a-side pitches. Opened in 2025.',
-    air: { dist: 250, az: 200, el: 36 }, walk: [-24, 10, 15, 10], reach: 95 },
+    text: 'Brick and timber around a covered public court, with a hotel, pool terrace, cafes and five-a-side pitches. Opened in 2025.' },
   { id: 'petit', name: 'Petit Stade', kind: 'Indoor halls', file: 'petitstade.glb', pos: [-238.6, 380.9], rot: 5.8 * deg, top: 22,
-    text: 'Two halls for basketball, volleyball and para sport beside the stadium, wearing the same patterned screen.',
-    air: { dist: 170, az: 30, el: 34, at: [26, 0] }, walk: [26, 58, 26, 0], reach: 85 },
+    text: 'Two halls for basketball, volleyball and para sport beside the stadium, wearing the same patterned screen.' },
   { id: 'courts', name: 'Outdoor courts', kind: 'Courts and training track', pos: [52, 175], rot: 0, top: 14,
-    text: 'Open basketball and tennis courts, and the training pitch with its running track, between the arena and the stadium.',
-    air: { dist: 240, az: 60, el: 38 }, walk: [0, 75, 0, 40], reach: 90 },
+    text: 'Open basketball and tennis courts, and the training pitch with its running track, between the arena and the stadium.' },
 ];
 
 // ---------------------------------------------------------------- scene
@@ -245,14 +239,10 @@ function drive(dt) {
 progress(0.97);
 
 // ---------------------------------------------------------------- moving about
-const controls = new MapControls(camera, canvas);
-controls.enableDamping = true; controls.dampingFactor = 0.08; controls.screenSpacePanning = false; controls.zoomToCursor = true;
-controls.minDistance = 30; controls.maxDistance = 1500; controls.maxPolarAngle = 84 * deg; controls.target.set(-90, 0, 170);
-controls.autoRotateSpeed = 0.45;
-let mode = 'fly', tween = null, place = null, menu = true;
+let mode = 'walk', tween = null, menu = true;
 const walk = { yaw: 0, pitch: 0, goal: null, look: null };
-// everything that can steer: the two on-screen sticks, the keyboard and a game controller all end up here
-const input = { keys: new Set(), L: new THREE.Vector2(), R: new THREE.Vector2(), padL: new THREE.Vector2(), padR: new THREE.Vector2(), run: false, padRun: false, zoom: 0, padZoom: 0 };
+// keyboard and game controller input
+const input = { keys: new Set(), padL: new THREE.Vector2(), padR: new THREE.Vector2(), run: false, padRun: false };
 const EYE = 1.7, HOME = new THREE.Vector2(-110, 190);
 // Zaria Court's north and east sides stand 4.5 m above the court: steps, bleachers and grass banks lead up to them.
 // Numbers are in the model's own metres and must match blender/py/120_zaria.py (OX, OY, the plateau outline, the steps).
@@ -281,10 +271,6 @@ function heightAt(x, z) {
   return h;
 }
 
-function airPose(v) {
-  const a = v.air, at = a.at ? local(v, a.at[0], a.at[1]) : v.pos, target = new THREE.Vector3(at[0], 0, at[1]), az = a.az * deg, el = a.el * deg;
-  return { pos: new THREE.Vector3(target.x + Math.sin(az) * Math.cos(el) * a.dist, Math.sin(el) * a.dist, target.z + Math.cos(az) * Math.cos(el) * a.dist), look: target };
-}
 function groundPose(v) {
   const p = local(v, v.walk[0], v.walk[1]), l = local(v, v.walk[2], v.walk[3]);
   return { pos: new THREE.Vector3(p[0], EYE, p[1]), look: new THREE.Vector3(l[0], Math.min(v.top * 0.35, 9), l[1]) };
@@ -293,50 +279,28 @@ function groundPose(v) {
 function moveTo(pos, look, ms, after) {
   const q1 = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(pos, look, UP));
   tween = { p0: camera.position.clone(), q0: camera.quaternion.clone(), p1: pos.clone(), q1, look: look.clone(), t0: performance.now(), ms, after };
-  controls.enabled = false; walk.goal = null;
+  walk.goal = null;
 }
 const syncWalk = () => { const e = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ'); walk.yaw = e.y; walk.pitch = e.x; };
-const syncFly = (look) => () => { controls.target.copy(look); controls.enabled = true; controls.update(); };
 let hintTimer = 0;
 function hint(text) { const h = $('hint'); h.textContent = text; h.classList.remove('gone'); clearTimeout(hintTimer); hintTimer = setTimeout(() => h.classList.add('gone'), 9000); }
 function setMode(m) {
   mode = m; document.body.dataset.mode = m; input.run = false; $('a-run').classList.remove('on'); $('places').hidden = true;
-  $('fly-txt').textContent = m === 'fly' ? 'Land' : 'Fly';
-  $('fly-ico').setAttribute('d', m === 'fly' ? 'M12 3v14M6 11l6 6 6-6M5 21h14' : 'M12 21V7M6 13l6-6 6 6M5 3h14');
-  hint(m === 'fly' ? 'Left stick flies you over the map · right stick turns · Land drops you where you are looking'
-    : 'Left stick walks · right stick looks · walk into the gold coins · Fly lifts you back up');
+  hint(m === 'car' ? 'WASD drives, mouse looks, V exits'
+    : 'WASD walks · up/down move · left/right turn · mouse looks · walk into the gold coins');
 }
-function landAt(x, z, lookAt) { // come down to eye level at a spot on the ground
+function moveToGround(x, z, lookAt) {
   const pos = new THREE.Vector3(x, EYE + heightAt(x, z), z);
   let look = lookAt; if (!look) { const d = new THREE.Vector3(x - camera.position.x, 0, z - camera.position.z).normalize(); look = pos.clone().addScaledVector(d, 30); look.y = pos.y + 1; }
-  setMode('walk'); $('card').hidden = true;
-  moveTo(pos, look, 1800, syncWalk);
-}
-function takeOff() { // rise straight back and up from where you stand
-  const f = new THREE.Vector3(); camera.getWorldDirection(f); f.y = 0; f.normalize();
-  const look = camera.position.clone().addScaledVector(f, 40); look.y = 0;
-  const pos = look.clone().addScaledVector(f, -190); pos.y = 150;
-  setMode('fly'); moveTo(pos, look, 1600, syncFly(look));
+  setMode('walk'); moveTo(pos, look, 1800, syncWalk);
 }
 function visit(v) {
-  place = v; if (mode === 'fly') showCard(v); else $('card').hidden = true; $('places').hidden = true;
+  $('places').hidden = true;
   document.querySelectorAll('#places button').forEach((b) => b.classList.toggle('on', b.dataset.id === v.id));
-  if (mode === 'walk') { const g = groundPose(v); moveTo(g.pos, g.look, 2200, syncWalk); }
-  else { const a = airPose(v); moveTo(a.pos, a.look, 2000, syncFly(a.look)); }
+  const g = groundPose(v);
+  moveToGround(g.pos.x, g.pos.z, g.look);
 }
-function showCard(v) {
-  const c = $('card'); c.hidden = false;
-  c.innerHTML = `<button class="x" data-act="close" aria-label="Close">×</button><small>${v.kind}</small><h2>${v.name}</h2><p>${v.text}</p>
-    <div class="row"><button class="primary" data-act="ground">Walk here</button>${v.inside ? '<button data-act="inside">' + v.inside.label + '</button>' : ''}${v.link ? `<a href="${v.link[1]}">${v.link[0]}</a>` : ''}</div>`;
-}
-function goInside(v) { const p = local(v, v.inside.at[0], v.inside.at[1]), l = local(v, v.inside.look[0], v.inside.look[1]); $('card').hidden = true; landAt(p[0], p[1], new THREE.Vector3(l[0], 6, l[1])); }
-$('card').addEventListener('click', (e) => {
-  const act = e.target.dataset.act; if (!act) return;
-  if (act === 'close') { $('card').hidden = true; return; }
-  if (act === 'ground') { const g = groundPose(place); landAt(g.pos.x, g.pos.z, g.look); }
-  if (act === 'inside') goInside(place);
-});
-
+function goInside(v) { const p = local(v, v.inside.at[0], v.inside.at[1]), l = local(v, v.inside.look[0], v.inside.look[1]); moveToGround(p[0], p[1], new THREE.Vector3(l[0], 6, l[1])); }
 // ---------------------------------------------------------------- the game layer: places to discover, coins to collect
 let save = {}; try { save = JSON.parse(localStorage.getItem('ksc-tour') || '{}'); } catch { save = {}; }
 const found = new Set(save.places || []), got = new Set(save.coins || []);
@@ -370,10 +334,10 @@ function lookForOffer() {
   let o = null; const p = camera.position;
   if (mode === 'walk' && !tween) {
     const bk = VENUES[0], am = VENUES[1], e = local(bk, 0, 104);
-    if (Math.hypot(p.x - e[0], p.z - e[1]) < 55) o = { text: 'Explore the arena entrance', run: () => { const g = groundPose(bk); landAt(g.pos.x, g.pos.z, g.look); } };
+    if (Math.hypot(p.x - e[0], p.z - e[1]) < 55) o = { text: 'Explore the arena entrance', run: () => { const g = groundPose(bk); moveToGround(g.pos.x, g.pos.z, g.look); } };
     else {
       const dx = p.x - am.pos[0], dz = p.z - am.pos[1], c = Math.cos(am.rot), s = Math.sin(am.rot), X = dx * c - dz * s, N = -dx * s - dz * c, k = (X / 92) ** 2 + (N / 125) ** 2;
-      if (k < 0.85) o = { text: 'Leave the stadium', run: () => { const g = groundPose(am); landAt(g.pos.x, g.pos.z, g.look); } };
+      if (k < 0.85) o = { text: 'Leave the stadium', run: () => { const g = groundPose(am); moveToGround(g.pos.x, g.pos.z, g.look); } };
       else if (k < 2.3) o = { text: 'Step onto the pitch', run: () => goInside(am) };
     }
   }
@@ -384,7 +348,7 @@ $('prompt').onclick = () => offer && offer.run();
 // mini-map: you in the middle, your heading up, the places and the coins still to find
 const mapC = $('map'), mctx = mapC.getContext('2d'), fwd = new THREE.Vector3();
 function drawMap() {
-  const W = mapC.width, R = W / 2, me = mode === 'walk' || tween ? camera.position : controls.target, span = mode === 'walk' ? 170 : 520, k = R / span;
+  const W = mapC.width, R = W / 2, me = camera.position, span = 170, k = R / span;
   camera.getWorldDirection(fwd); const a = Math.atan2(fwd.x, -fwd.z), ca = Math.cos(-a), sa = Math.sin(-a);
   const at = (x, z) => { const dx = (x - me.x) * k, dz = (z - me.z) * k; return [R + dx * ca - dz * sa, R + dx * sa + dz * ca]; };
   mctx.clearRect(0, 0, W, W); mctx.save(); mctx.beginPath(); mctx.arc(R, R, R - 3, 0, 7); mctx.clip();
@@ -401,98 +365,63 @@ function drawMap() {
   const n = [R + Math.sin(-a) * (R - 12), R - Math.cos(-a) * (R - 12)]; mctx.fillStyle = '#fad201'; mctx.font = '800 15px -apple-system, system-ui, sans-serif'; mctx.textAlign = 'center'; mctx.textBaseline = 'middle'; mctx.fillText('N', n[0], n[1]);
 }
 
-// travel list, and a name tag floating over each place
+// place travel list
 function refreshPlaces() { document.querySelectorAll('#places button').forEach((b) => { b.lastElementChild.textContent = found.has(b.dataset.id) ? '' : 'NEW'; }); }
-const tags = VENUES.map((v) => {
-  const b = document.createElement('button'); b.innerHTML = `<span>${v.name}</span><i></i>`; b.dataset.id = v.id; b.onclick = () => visit(v); $('places').append(b);
-  const t = document.createElement('button'); t.className = 'tag'; t.textContent = v.name; t.onclick = () => visit(v); $('tags').append(t);
-  return { el: t, at: new THREE.Vector3(v.pos[0], v.top, v.pos[1]) };
+const places = VENUES.map((v) => {
+  const b = document.createElement('button'); b.innerHTML = '<span>' + v.name + '</span><i></i>'; b.dataset.id = v.id; b.onclick = () => visit(v); $('places').append(b);
+  return b;
 });
 refreshPlaces(); score();
-const scr = new THREE.Vector3();
-function placeTags() {
-  for (const t of tags) {
-    const d = camera.position.distanceTo(t.at), ahead = scr.copy(t.at).applyMatrix4(camera.matrixWorldInverse).z < 0; scr.copy(t.at).project(camera);
-    const show = ahead && Math.abs(scr.x) < 1.05 && Math.abs(scr.y) < 1.05 && mode === 'fly' && d > 90 && !tween;
-    t.el.style.display = show ? '' : 'none';
-    if (show) { t.el.style.left = ((scr.x + 1) / 2 * innerWidth) + 'px'; t.el.style.top = ((1 - scr.y) / 2 * innerHeight - 14) + 'px'; }
-  }
-}
-
-// ---------------------------------------------------------------- controls: sticks, buttons, keys, controller, and the screen itself
-function stick(el, out) { // a thumb stick that works with a finger or the mouse; out.x = right, out.y = forward/up
-  const knob = el.querySelector('b'); let id = null;
-  const set = (e) => { const r = el.getBoundingClientRect(), reach = r.width * 0.3; let x = (e.clientX - r.left - r.width / 2) / reach, y = (e.clientY - r.top - r.height / 2) / reach; const l = Math.max(1, Math.hypot(x, y)); x /= l; y /= l;
-    out.set(x, -y); knob.style.transform = `translate(${x * reach}px, ${y * reach}px)`; };
-  el.addEventListener('pointerdown', (e) => { id = e.pointerId; el.setPointerCapture(id); el.classList.add('held'); set(e); walk.goal = null; e.preventDefault(); });
-  el.addEventListener('pointermove', (e) => { if (e.pointerId === id) set(e); });
-  const end = (e) => { if (e.pointerId === id) { id = null; out.set(0, 0); knob.style.transform = ''; el.classList.remove('held'); } };
-  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end); el.addEventListener('lostpointercapture', end);
-}
-stick($('padL'), input.L); stick($('padR'), input.R);
-const toggleFly = () => { if (tween) return; if (mode === 'walk') takeOff(); else landAt(controls.target.x, controls.target.z); };
-$('a-fly').onclick = toggleFly;
+// ---------------------------------------------------------------- controls: keys, buttons, controller, and mouse
 $('a-run').onclick = () => { input.run = !input.run; $('a-run').classList.toggle('on', input.run); };
 $('a-go').onclick = () => { $('places').hidden = !$('places').hidden; };
-for (const [id, dir] of [['a-zin', -1], ['a-zout', 1]]) {
-  const b = $(id); b.addEventListener('pointerdown', (e) => { input.zoom = dir; b.setPointerCapture(e.pointerId); });
-  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(ev, () => { input.zoom = 0; });
-}
-function startGame() { menu = false; delete document.body.dataset.menu; controls.autoRotate = false; setMode(mode); try { history.replaceState(null, '', '#explore'); } catch { /* no history: fine */ } }
+function startGame() { menu = false; delete document.body.dataset.menu; setMode(mode); try { history.replaceState(null, '', '#explore'); } catch { /* no history: fine */ } }
 $('start').onclick = startGame;
 
 // pointing at the ground
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), floor = new THREE.Plane(UP, 0), hit = new THREE.Vector3();
 function groundAt(e) { ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera); return ray.ray.intersectPlane(floor, hit) && hit.distanceTo(camera.position) < 2500 ? hit : null; }
-let lastTap = 0, lastTapAt = [0, 0];
 canvas.addEventListener('pointerdown', (e) => {
-  $('places').hidden = true; if (tween) return;
-  if (mode === 'walk') { walk.look = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false }; canvas.setPointerCapture(e.pointerId); }
-  else walk.look = { id: e.pointerId, sx: e.clientX, sy: e.clientY, moved: false, fly: true };
+  $('places').hidden = true; if (tween || mode === 'car') return;
+  walk.look = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false };
+  canvas.setPointerCapture(e.pointerId);
 });
 canvas.addEventListener('pointermove', (e) => {
   const L = walk.look; if (!L || L.id !== e.pointerId) return;
   if (Math.hypot(e.clientX - L.sx, e.clientY - L.sy) > 7) L.moved = true;
-  if (L.fly) return;
   walk.yaw -= (e.clientX - L.x) * 0.0042; walk.pitch = Math.max(-1.1, Math.min(1.25, walk.pitch - (e.clientY - L.y) * 0.0042)); L.x = e.clientX; L.y = e.clientY;
 });
 canvas.addEventListener('pointerup', (e) => {
   const L = walk.look; if (!L || L.id !== e.pointerId) return; walk.look = null;
   if (L.moved || tween) return;
-  const g = groundAt(e); if (!g) return;
-  if (L.fly) { // double click or double tap in the air: come down there
-    const now = performance.now(), dbl = now - lastTap < 380 && Math.hypot(e.clientX - lastTapAt[0], e.clientY - lastTapAt[1]) < 30; lastTap = now; lastTapAt = [e.clientX, e.clientY];
-    if (dbl) landAt(g.x, g.z);
-  } else if (g.distanceTo(camera.position) < 260 && heightAt(camera.position.x, camera.position.z) < 0.5) walk.goal = new THREE.Vector2(g.x, g.z);
+  const g = groundAt(e); if (g && g.distanceTo(camera.position) < 260 && heightAt(camera.position.x, camera.position.z) < 0.5) walk.goal = new THREE.Vector2(g.x, g.z);
 });
 addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.repeat) return; const k = e.key.toLowerCase(); input.keys.add(k);
   if (menu) { if (k === 'enter' || k === ' ') startGame(); return; }
   if (e.key.startsWith('Arrow') || k === ' ') e.preventDefault();
-  if (k === 'f' || k === ' ' || (k === 'escape' && mode === 'walk')) toggleFly();
   if (k === 'e' || k === 'enter') offer && offer.run();
   if (k === 'm') $('places').hidden = !$('places').hidden;
 });
 addEventListener('keyup', (e) => input.keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => input.keys.clear());
-// a game controller, if one is plugged in: left stick moves, right stick looks, A = action, B = run, Y = fly or land, triggers zoom
+// a game controller, if one is plugged in: left stick moves, right stick looks, A = action, B = run, X = places
 const padWas = [];
 function pollPad() {
   const gp = (navigator.getGamepads ? [...navigator.getGamepads()] : []).find((g) => g && g.connected);
-  if (!gp) { input.padL.set(0, 0); input.padR.set(0, 0); input.padRun = false; input.padZoom = 0; return; }
+  if (!gp) { input.padL.set(0, 0); input.padR.set(0, 0); input.padRun = false; return; }
   const dz = (v) => (Math.abs(v) < 0.16 ? 0 : v), down = (i) => !!(gp.buttons[i] && gp.buttons[i].pressed), hit = (i) => { const d = down(i), was = padWas[i]; padWas[i] = d; return d && !was; };
   input.padL.set(dz(gp.axes[0] || 0), -dz(gp.axes[1] || 0)); input.padR.set(dz(gp.axes[2] || 0), -dz(gp.axes[3] || 0));
-  input.padRun = down(1) || down(10); input.padZoom = (down(6) ? 1 : 0) - (down(7) ? 1 : 0);
+  input.padRun = down(1) || down(10);
   if (hit(0)) { if (menu) startGame(); else if (offer) offer.run(); }
-  if (hit(3) && !menu) toggleFly();
   if (hit(2) && !menu) $('places').hidden = !$('places').hidden;
 }
 const mv = new THREE.Vector2(), lk = new THREE.Vector2();
 function readInput() {
   const k = input.keys;
-  mv.set((k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0), (k.has('w') || k.has('arrowup') ? 1 : 0) - (k.has('s') || k.has('arrowdown') ? 1 : 0)).add(input.L).add(input.padL);
+  mv.set((k.has('d') ? 1 : 0) - (k.has('a') ? 1 : 0), (k.has('w') || k.has('arrowup') ? 1 : 0) - (k.has('s') || k.has('arrowdown') ? 1 : 0)).add(input.padL);
   if (mv.lengthSq() > 1) mv.normalize();
-  lk.copy(input.R).add(input.padR);
+  lk.set((k.has('arrowright') ? 1 : 0) - (k.has('arrowleft') ? 1 : 0), 0).add(input.padR);
 }
 
 // house outlines, sorted into 40 m squares, so walking stops at walls
@@ -524,22 +453,10 @@ function stepWalk(dt) {
   }
   p.y += (EYE + heightAt(p.x, p.z) - p.y) * Math.min(1, dt * 9); camera.rotation.set(walk.pitch, walk.yaw, 0, 'YXZ');
 }
-const off = new THREE.Vector3(), sph = new THREE.Spherical(), slide = new THREE.Vector3();
-function stepFly(dt) { // the sticks fly the camera: left slides over the ground, right turns and tilts, the two buttons move in and out
-  const zoom = input.zoom + input.padZoom + (input.keys.has('q') ? 1 : 0) - (input.keys.has('z') ? 1 : 0);
-  if (!mv.x && !mv.y && !lk.x && !lk.y && !zoom) return;
-  const t = controls.target; off.copy(camera.position).sub(t); sph.setFromVector3(off);
-  sph.theta -= lk.x * 1.5 * dt; sph.phi = Math.max(0.12, Math.min(controls.maxPolarAngle, sph.phi - lk.y * 1.0 * dt));
-  sph.radius = Math.max(controls.minDistance, Math.min(controls.maxDistance, sph.radius * (1 + zoom * 1.3 * dt)));
-  const sp = Math.max(40, sph.radius * 0.9) * (input.keys.has('shift') || input.padRun ? 2 : 1) * dt, s = Math.sin(sph.theta), c = Math.cos(sph.theta);
-  slide.set((-s * mv.y + c * mv.x) * sp, 0, (-c * mv.y - s * mv.x) * sp); t.add(slide); tether(t);
-  camera.position.setFromSpherical(sph).add(t); camera.lookAt(t);
-}
-
 // ---------------------------------------------------------------- run
 function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
-setMode('fly'); controls.autoRotate = true; controls.update();
+const spawn = local(VENUES[0], 0, 104), target = local(VENUES[0], 0, 0); camera.position.set(spawn[0], EYE + heightAt(spawn[0], spawn[1]), spawn[1]); camera.lookAt(target[0], 8, target[1]); syncWalk(); setMode('walk');
 if (location.hash === '#explore') startGame();
 let last = performance.now(), slow = 0;
 const focus = new THREE.Vector3();
@@ -551,17 +468,17 @@ function frame(now) {
     camera.position.lerpVectors(tween.p0, tween.p1, e); camera.quaternion.slerpQuaternions(tween.q0, tween.q1, e);
     if (k >= 1) { const after = tween.after; tween = null; if (after) after(); }
   } else if (mode === 'walk') stepWalk(dt);
-  else { if (!menu) stepFly(dt); controls.update(); }
+
   drive(dt); play(dt, now);
   if ((slow += dt) > 0.2) { slow = 0; lookForOffer(); }
   if (mode === 'walk') { focus.copy(camera.position); focus.y = 0; aimSun(focus, 150); }
-  else { focus.copy(tween ? tween.look : controls.target); aimSun(focus, Math.max(160, Math.min(520, camera.position.distanceTo(focus) * 0.7))); }
+  else if (mode === 'car') { focus.copy(car.position); aimSun(focus, 150); }
   if (seats) seats.update(camera);
-  placeTags(); if (!menu) drawMap();
+  if (!menu) drawMap();
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
 progress(1);
-document.body.dataset.mode = 'fly';
+document.body.dataset.mode = 'walk';
 requestAnimationFrame(frame);
-window.__tour = { stand: (x, z, lx, lz, ly = 8) => landAt(x, z, new THREE.Vector3(lx, ly, lz)), scene, camera, controls, VENUES, visit, landAt, takeOff, renderer, input, startGame, coins, get mode() { return mode; } };
+window.__tour = { stand: (x, z, lx, lz, ly = 8) => moveToGround(x, z, new THREE.Vector3(lx, ly, lz)), scene, camera, VENUES, visit, moveToGround, renderer, input, startGame, coins, get mode() { return mode; } };

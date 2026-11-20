@@ -1,54 +1,63 @@
-## **KGL-Life development strategy**
+# KGL-Life: Gameplay Integration Audit
 
-**BK Arena Tickets** (`https://github.com/bucura-art/kglfy`)
+We are combining two existing projects:
 
-Keep
+**Environment (keep this as the foundation):**
+- Repository: `bucura-art/kglfy`
+- Branch: `livegame`
+- Main environment: `src/tour.js`
+- Entry point: `tour.html`
+- Environment assets: `public/models/` and `public/tour/site.json`
 
-- 3D environment
-- Buildings and roads
-- Trees and vegetation
-- Textures and lighting
+**Gameplay (reuse selected systems):**
+- Repository: `bucura-art/slop-kgl`
+- Branch: `main`
+- Main entry point: `js/main.js`
+- Player controls: `js/controllers.js`
+- Cameras: `js/cameras.js`
+- Vehicle models: `js/actor-models.js`
+- Physics: `js/vehicle-physics.js`
 
-**Slop Kigali** (`https://github.com/bucura-art/slop-kgl`)
+## Goal
 
-Keep
+Keep the BK Arena environment and integrate Slop-KGL gameplay into it.
 
-- Bike gameplay
-- Car gameplay
-- Airplane gameplay
-- Camera mechanics
-- Movement and controls
+We want:
+- Walking
+- Car driving
+- Bicycle riding
+- Aircraft gameplay (currently helicopter in Slop-KGL)
 
-**KGL-Life**
+## Tasks
 
-Realistic Kigali environment + Slop Cities gameplay
+1. Inspect both projects and their dependencies.
+2. Compare Three.js versions, renderers and WebGPU-specific features.
+3. Identify how to reuse Slop-KGL vehicle models, controls, physics and cameras.
+4. Identify dependencies on Slop-KGL's terrain, road graph, colliders and geodata.
+5. Investigate how to adapt player movement and collision detection to the BK Arena environment.
+6. Account for the different geographic origins and coordinate systems.
+7. Recommend the least destructive integration strategy.
 
-## **Your milestones**
+## Strict rules
 
-|1 Clean BK Arena repository, remove ticketing functionality, preserve environment.
-|2 Integrate Slop Cities gameplay into the BK Arena environment.
-|3 Fix vehicle positioning, terrain alignment, collisions and camera.
-|4 Polish gameplay and introduce KGL-Life branding.
-|5 Expand the playable environment and add features.
+- BK Arena remains the environment foundation.
+- Do not replace it with Slop-KGL's city.
+- Do not import Slop-KGL's KICC geodata or city-building systems.
+- Do not create duplicate scenes or rendering loops.
+- Preserve existing BK Arena models, textures, lighting and environment functionality.
+- Do not blindly copy entire modules.
+- Do not modify any files yet.
 
-## **What you should do RIGHT NOW**
+## Deliverable
 
-Since you've already cloned BK Arena:
+Create `GAMEPLAY_INTEGRATION_PLAN.md` with:
+- Exact files to reuse.
+- Exact files to adapt.
+- Renderer compatibility solution.
+- Coordinate and terrain adaptation strategy.
+- Recommended integration architecture.
+- A staged implementation plan.
 
-1. Create a Git branch of clean environment called `livegame`.
-2. Identify and remove ticket-selection UI, seat selection, booking logic and payment-related functionality, if present.
-3. Preserve the Three.js scene, Blender assets, models, textures, environment generation and exploration code.
-4. Make sure the cleaned project still runs.
-5. Commit this as your clean environment foundation.
+Recommend a first playable milestone: one controllable vehicle inside the BK Arena environment.
 
-**Important:** Don't delete `tour.html` or `src/tour.js` wholesale. They contain the environment rendering and exploration functionality we want.
-
-## **One architectural decision**
-
-Keep the two original repositories separate for now:
-
-- `bk-arena-tickets`: source of the environment.
-- `slop-kgl`: source of gameplay.
-
-Once the environment is clean, we'll study the Slop-KGL gameplay architecture and port its mechanics into the BK Arena project.
-**The goal is not to merge two repositories blindly. It's to transfer the gameplay systems into the environment while preserving what makes each project good.**
+Stop after writing the plan.
